@@ -21,13 +21,13 @@ export default async function Page({ params, searchParams }: Props) {
 
   return (
     <div className="snap-container">
-      {/* 1. Hero — full-screen, centrado */}
+      {/* 1. Hero */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6 text-center">
         <Reveal>
           <p className="font-sans text-xs tracking-[0.3em] text-bronze uppercase sm:text-sm">
             Nos casamos
           </p>
-          <h1 className="mt-4 font-serif text-4xl leading-[1.1] text-ink sm:text-6xl">
+          <h1 className="mt-4 font-serif text-4xl leading-[1.1] text-ink sm:text-6xl" style={{ textWrap: "balance" }}>
             {event.coupleNames}
           </h1>
           <p className="mt-4 font-sans text-base text-ink/70 sm:text-lg">
@@ -42,7 +42,7 @@ export default async function Page({ params, searchParams }: Props) {
       {/* 2. Nuestra historia — foto izquierda (65%), texto derecha (35%) */}
       <SplitSection image={event.story.image} alt="Nosotros">
         <Reveal>
-          <h2 className="font-serif text-xl text-ink sm:text-2xl">
+          <h2 className="font-serif text-xl text-ink sm:text-2xl" style={{ textWrap: "balance" }}>
             {event.story.heading}
           </h2>
           {event.story.paragraphs.map((p) => (
@@ -59,7 +59,7 @@ export default async function Page({ params, searchParams }: Props) {
       {/* 3. Ceremonia y festejo — texto izquierda, foto derecha (65%) */}
       <SplitSection image={event.heroImage} alt="Ceremonia" reverse>
         <Reveal>
-          <h2 className="font-serif text-xl text-ink sm:text-2xl">
+          <h2 className="font-serif text-xl text-ink sm:text-2xl" style={{ textWrap: "balance" }}>
             Ceremonia y festejo
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-ink/75 sm:text-base">
@@ -78,18 +78,18 @@ export default async function Page({ params, searchParams }: Props) {
         </Reveal>
       </SplitSection>
 
-      {/* 4. FAQ — solo info */}
+      {/* 4. FAQ */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
         <Reveal>
           <div className="max-w-lg text-center">
-            <h2 className="font-serif text-xl text-ink sm:text-2xl">Preguntas</h2>
+            <h2 className="font-serif text-xl text-ink sm:text-2xl" style={{ textWrap: "balance" }}>Preguntas</h2>
             <div className="mt-6 flex flex-col gap-5 text-left">
               <div>
                 <h3 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
                   Código de vestimenta
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink/75 sm:text-base">
-                  Elegante. Evitar color blanco o beige para no competir con la novia.
+                  Elegante. Evitar color blanco o beige.
                 </p>
               </div>
               <div>
@@ -97,7 +97,7 @@ export default async function Page({ params, searchParams }: Props) {
                   Horario
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink/75 sm:text-base">
-                  La ceremonia empieza a las {event.time}. Te pedimos llegar 10 minutos antes.
+                  La ceremonia empieza a las {event.time}. Llegar 10 minutos antes.
                 </p>
               </div>
               <div>
@@ -105,7 +105,7 @@ export default async function Page({ params, searchParams }: Props) {
                   Estacionamiento
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink/75 sm:text-base">
-                  El salón cuenta con estacionamiento propio. También se puede estacionar en la vereda.
+                  El salón tiene estacionamiento propio.
                 </p>
               </div>
               <div>
@@ -113,7 +113,7 @@ export default async function Page({ params, searchParams }: Props) {
                   Niños
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink/75 sm:text-base">
-                  Los invitamos a celebrar con todos, pero la fiesta es solo para adultos.
+                  La fiesta es solo para adultos.
                 </p>
               </div>
             </div>
@@ -121,7 +121,7 @@ export default async function Page({ params, searchParams }: Props) {
         </Reveal>
       </section>
 
-      {/* 5. RSVP — centrado */}
+      {/* 5. RSVP */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
         <Reveal>
           <div className="w-full max-w-md">
@@ -131,12 +131,11 @@ export default async function Page({ params, searchParams }: Props) {
               </p>
             ) : !tokenValid ? (
               <p className="text-center text-sm leading-relaxed text-ink/75 sm:text-base">
-                Este link de confirmación no es válido. Revisá el mensaje que te
-                enviamos.
+                Este link no es válido. Revisá el mensaje que te enviamos.
               </p>
             ) : existing ? (
               <div className="flex flex-col gap-2">
-                <h2 className="text-center font-serif text-xl text-ink sm:text-2xl">
+                <h2 className="text-center font-serif text-xl text-ink sm:text-2xl" style={{ textWrap: "balance" }}>
                   Ya confirmaste tu asistencia
                 </h2>
                 <p className="text-center text-sm leading-relaxed text-ink/75 sm:text-base">
@@ -153,7 +152,7 @@ export default async function Page({ params, searchParams }: Props) {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                <h2 className="text-center font-serif text-xl text-ink sm:text-2xl">
+                <h2 className="text-center font-serif text-xl text-ink sm:text-2xl" style={{ textWrap: "balance" }}>
                   Confirmá tu asistencia
                 </h2>
                 <RSVPForm

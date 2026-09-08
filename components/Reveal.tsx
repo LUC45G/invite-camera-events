@@ -5,10 +5,9 @@ import { useEffect, useRef } from "react";
 type Props = {
   children: React.ReactNode;
   className?: string;
-  stagger?: boolean;
 };
 
-export function Reveal({ children, className = "", stagger = false }: Props) {
+export function Reveal({ children, className = "" }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -37,10 +36,7 @@ export function Reveal({ children, className = "", stagger = false }: Props) {
   }, []);
 
   return (
-    <div
-      ref={ref}
-      className={`${stagger ? "reveal-stagger" : "reveal"} ${className}`}
-    >
+    <div ref={ref} className={`reveal ${className}`}>
       {children}
     </div>
   );

@@ -62,10 +62,12 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
         </span>
         <input
           required
+          name="name"
+          autoComplete="name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-base text-ink outline-none focus:border-bronze"
-          placeholder="Tu nombre"
+          className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-base text-ink focus:border-bronze"
+          placeholder="Tu nombre…"
         />
       </label>
 
@@ -76,6 +78,7 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
         <div className="flex gap-3">
           <button
             type="button"
+            aria-pressed={status === "accepted"}
             onClick={() => setStatus("accepted")}
             className={`rounded-sm border px-4 py-2.5 text-base transition-colors ${
               status === "accepted"
@@ -87,6 +90,7 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
           </button>
           <button
             type="button"
+            aria-pressed={status === "declined"}
             onClick={() => setStatus("declined")}
             className={`rounded-sm border px-4 py-2.5 text-base transition-colors ${
               status === "declined"
@@ -108,9 +112,11 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
             type="number"
             min={1}
             max={20}
+            inputMode="numeric"
+            name="guests"
             value={guests}
             onChange={(e) => setGuests(Number(e.target.value))}
-            className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-base text-ink outline-none focus:border-bronze"
+            className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-base text-ink focus:border-bronze"
           />
         </label>
       )}
@@ -122,8 +128,10 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
         <input
           value={dietary}
           onChange={(e) => setDietary(e.target.value)}
-          className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-base text-ink outline-none focus:border-bronze"
-          placeholder="Alergias, vegetarianos, etc."
+          name="dietary"
+          spellCheck={false}
+          className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-base text-ink focus:border-bronze"
+          placeholder="Alergias, vegetarianos, etc.…"
         />
       </label>
 

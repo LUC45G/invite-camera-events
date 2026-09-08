@@ -37,10 +37,10 @@ export function Countdown({ target }: { target: string }) {
       <div className="flex items-center justify-center gap-4 sm:gap-6">
         {["días", "horas", "min", "seg"].map((label) => (
           <div key={label} className="flex flex-col items-center">
-            <span className="font-serif text-3xl text-ink tabular-nums sm:text-4xl">
+            <span className="font-serif text-4xl text-ink tabular-nums sm:text-5xl">
               —
             </span>
-            <span className="font-sans text-xs uppercase tracking-[0.2em] text-ink/55">
+            <span className="font-sans text-sm uppercase tracking-[0.2em] text-ink/55">
               {label}
             </span>
           </div>
@@ -66,10 +66,10 @@ export function Countdown({ target }: { target: string }) {
     <div className="flex items-center justify-center gap-4 sm:gap-6">
       {cells.map((c) => (
         <div key={c.label} className="flex flex-col items-center">
-          <span className="font-serif text-3xl text-ink tabular-nums sm:text-4xl">
+          <span className="font-serif text-4xl text-ink tabular-nums sm:text-5xl">
             {String(c.value).padStart(2, "0")}
           </span>
-          <span className="font-sans text-xs uppercase tracking-[0.2em] text-ink/55">
+          <span className="font-sans text-sm uppercase tracking-[0.2em] text-ink/55">
             {c.label}
           </span>
         </div>

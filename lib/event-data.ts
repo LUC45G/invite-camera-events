@@ -13,6 +13,8 @@ export type WeddingEvent = {
   dressCode: string;
   contactName: string;
   contactPhone: string;
+  heroImage: string; // URL de foto placeholder (Unsplash)
+  gallery: string[]; // URLs de fotos placeholder para la galería en recuadros
 };
 
 export const weddingEvent: WeddingEvent = {
@@ -26,6 +28,13 @@ export const weddingEvent: WeddingEvent = {
   dressCode: "Elegante",
   contactName: "Sofía y Mateo",
   contactPhone: "+54 9 11 0000 0000",
+  // Placeholders: reemplazar por fotos reales de la pareja.
+  heroImage: "https://images.unsplash.com/photo-1519741497674-611481863552",
+  gallery: [
+    "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
+    "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6",
+    "https://images.unsplash.com/photo-1520854221256-17451cc331bf",
+  ],
 };
 
 export function getEvent(slug: string): WeddingEvent | null {

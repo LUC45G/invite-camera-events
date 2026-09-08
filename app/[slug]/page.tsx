@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getEvent } from "@/lib/event-data";
 import { findRsvp, isTokenValid } from "@/lib/rsvp-store";
@@ -32,6 +33,17 @@ export default async function Page({ params, searchParams }: Props) {
         </p>
       </header>
 
+      <div className="relative h-80 w-full overflow-hidden rounded-sm border border-ink/15 sm:h-[28rem]">
+        <Image
+          src={event.heroImage}
+          alt={`${event.coupleNames} — foto de boda`}
+          fill
+          priority
+          sizes="(max-width: 640px) 100vw, 42rem"
+          className="object-cover"
+        />
+      </div>
+
       <Section>
         <h2 className="font-serif text-2xl text-ink">Ceremonia y festejo</h2>
         <p className="mt-3 text-base leading-relaxed text-ink/75">
@@ -60,6 +72,23 @@ export default async function Page({ params, searchParams }: Props) {
           las pantallas del salón. No hace falta descargar ninguna app.
         </p>
       </Section>
+
+      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        {event.gallery.map((src, i) => (
+          <div
+            key={src}
+            className="relative aspect-[3/4] overflow-hidden rounded-sm border border-ink/15"
+          >
+            <Image
+              src={src}
+              alt={`Foto ${i + 1}`}
+              fill
+              sizes="(max-width: 640px) 33vw, 14rem"
+              className="object-cover"
+            />
+          </div>
+        ))}
+      </div>
 
       <Section>
         {!hasToken ? (

@@ -1,11 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --cream: #f7f2e9;
-  --champagne: #e9dfc9;
-  --ivory: #fffdf7;
-  --ink: #3b3228;
-  --bronze: #9a7b4f;
+  --cream: #DFD1CC;
+  --champagne: #B57E7F;
+  --ivory: #FFFFFF;
+  --ink: #131313;
+  --bronze: #B57E7F;
+  --navy: #000040;
 }
 
 @theme inline {
@@ -14,6 +15,7 @@
   --color-ivory: var(--ivory);
   --color-ink: var(--ink);
   --color-bronze: var(--bronze);
+  --color-navy: var(--navy);
   --font-serif: var(--font-serif);
   --font-sans: var(--font-sans);
 }
@@ -26,61 +28,31 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Focus visible global */
+/* Scroll snap */
+.snap-y::-webkit-scrollbar {
+  display: none;
+}
+.snap-y {
+  scrollbar-width: none;
+}
+
+/* Focus visible */
 :focus-visible {
-  outline: 2px solid var(--bronze);
+  outline: 2px solid var(--navy);
   outline-offset: 2px;
 }
 
-/* Scroll reveal */
-.reveal {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.6s ease-out,
-    transform 0.6s ease-out;
-}
-
-.reveal.is-visible {
-  opacity: 1;
-  transform: none;
-}
-
-/* Timeline staggered reveal */
-.reveal-stagger > * {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
-}
-
-.reveal-stagger.is-visible > * {
-  opacity: 1;
-  transform: none;
+/* Polaroid */
+.polaroid {
+  background: white;
+  padding: 0.75rem 0.75rem 2.5rem 0.75rem;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.12),
+    0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .reveal,
-  .reveal-stagger > * {
-    opacity: 1;
-    transform: none;
-    transition: none;
+  .polaroid {
+    transition: none !important;
   }
-}
-
-/* Carrusel scroll-snap */
-.carousel {
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  touch-action: pan-x;
-}
-
-.carousel::-webkit-scrollbar {
-  display: none;
-}
-
-.carousel > .carousel-item {
-  scroll-snap-align: center;
 }

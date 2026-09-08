@@ -16,6 +16,7 @@ export type WeddingEvent = {
   contactPhone: string;
   heroImage: string;
   story: { heading: string; paragraphs: string[]; image: string };
+  faq: { heading: string; paragraphs: string[]; image: string };
   gallery: string[];
   schedule: { time: string; label: string; detail: string }[];
 };
@@ -41,6 +42,15 @@ export const weddingEvent: WeddingEvent = {
       "Hoy queremos celebrar con quienes más queremos. Este sitio es nuestra invitación y, el día de la fiesta, la cámara de todos.",
     ],
     image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
+  },
+  faq: {
+    heading: "Preguntas frecuentes",
+    paragraphs: [
+      "¿Tienen parking? Sí, hay estacionamiento gratuito en el venue.",
+      "¿Puedo llevar acompañante? ¡Claro! Indicalo en tu confirmación.",
+      "¿A qué hora termina? La fiesta finaliza a la 1:00 AM.",
+    ],
+    image: "https://images.unsplash.com/photo-1520854221256-17451cc331bf",
   },
   gallery: [
     "https://images.unsplash.com/photo-1583939003579-730e3918a45a",

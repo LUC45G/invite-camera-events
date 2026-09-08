@@ -1,13 +1,10 @@
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getEvent } from "@/lib/event-data";
 import { findRsvp, isTokenValid } from "@/lib/rsvp-store";
 import { RSVPForm } from "@/components/RSVPForm";
-import { Section } from "@/components/Section";
-import { Reveal } from "@/components/Reveal";
+import { Slideshow } from "@/components/Slideshow";
 import { Countdown } from "@/components/Countdown";
-import { PhotoCarousel } from "@/components/PhotoCarousel";
-import { Timeline } from "@/components/Timeline";
+import { ScrollToRsvp } from "@/components/ScrollToRsvp";
 
 type Props = PageProps<"/[slug]">;
 
@@ -22,143 +19,99 @@ export default async function Page({ params, searchParams }: Props) {
   const tokenValid = hasToken && isTokenValid(token);
   const existing = tokenValid ? findRsvp(token) : undefined;
 
+  const slides = [
+    {
+      image: event.story.image,
+      alt: "Nosotros",
+      heading: event.story.heading,
+      paragraphs: event.story.paragraphs,
+    },
+    {
+      image: event.heroImage,
+      alt: "Ceremonia",
+      heading: "Ceremonia y festejo",
+      paragraphs: [
+        `${event.venue} — ${event.venueAddress}`,
+        `Vestimenta: ${event.dressCode}`,
+      ],
+    },
+    {
+      image: event.faq.image,
+      alt: "FAQ",
+      heading: event.faq.heading,
+      paragraphs: event.faq.paragraphs,
+    },
+  ];
+
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-14 px-6 py-16 sm:py-20">
-      <header className="flex flex-col items-center gap-6 text-center">
-        <p className="font-sans text-sm tracking-[0.25em] text-bronze uppercase">
+    <main className="snap-y snap-mandatory overflow-y-auto">
+      {/* Hero */}
+      <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6 text-center">
+        <p className="font-sans text-sm tracking-[0.3em] text-bronze uppercase sm:text-base">
           Nos casamos
         </p>
-        <h1 className="font-serif text-5xl leading-[1.1] text-ink sm:text-6xl">
+        <h1
+          className="mt-3 font-serif text-5xl leading-[1.1] text-ink sm:text-7xl"
+          style={{ textWrap: "balance" }}
+        >
           {event.coupleNames}
         </h1>
-        <p className="font-sans text-lg text-ink/70">{event.date}</p>
-        <Countdown target={event.weddingTimestamp} />
-      </header>
+        <p className="mt-3 font-sans text-lg text-ink/70 sm:text-xl">
+          {event.date}
+        </p>
+        <div className="mt-5">
+          <Countdown target={event.weddingTimestamp} />
+        </div>
+        <ScrollToRsvp>
+          <span className="mt-8 inline-block rounded-sm bg-bronze px-8 py-3 text-base text-ivory transition-colors hover:bg-bronze/90 sm:text-lg">
+            Confirmar invitación
+          </span>
+        </ScrollToRsvp>
+      </section>
 
-      <div className="relative h-80 w-full overflow-hidden rounded-sm border border-ink/15 sm:h-[28rem]">
-        <Image
-          src={event.heroImage}
-          alt={`${event.coupleNames} — foto de boda`}
-          fill
-          priority
-          sizes="(max-width: 640px) 100vw, 42rem"
-          className="object-cover"
-        />
-      </div>
+      {/* Slideshow — polaroid izq + texto der */}
+      <Slideshow slides={slides} />
 
-      <Reveal>
-        <Section>
-          <div className="grid items-center gap-6 sm:grid-cols-[1.2fr_1fr]">
-            <div>
-              <h2 className="font-serif text-2xl text-ink">
-                {event.story.heading}
-              </h2>
-              {event.story.paragraphs.map((p) => (
-                <p
-                  key={p.slice(0, 24)}
-                  className="mt-3 text-base leading-relaxed text-ink/75"
-                >
-                  {p}
-                </p>
-              ))}
-            </div>
-            <div className="relative aspect-[3/4] overflow-hidden rounded-sm border border-ink/15">
-              <Image
-                src={event.story.image}
-                alt="Nosotros"
-                fill
-                sizes="(max-width: 640px) 100vw, 16rem"
-                className="object-cover"
-              />
-            </div>
-          </div>
-        </Section>
-      </Reveal>
-
-      <Reveal>
-        <Section>
-          <h2 className="font-serif text-2xl text-ink">Ceremonia y festejo</h2>
-          <p className="mt-3 text-base leading-relaxed text-ink/75">
-            {event.venue}
-            <br />
-            {event.venueAddress}
-          </p>
-          <p className="mt-2 text-base leading-relaxed text-ink/75">
-            Vestimenta: {event.dressCode}
-          </p>
-          <a
-            href={event.mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-block border-b border-ink/20 pb-0.5 text-base text-bronze transition-colors hover:border-bronze"
-          >
-            Cómo llegar
-          </a>
-        </Section>
-      </Reveal>
-
-      <Reveal>
-        <Section>
-          <h2 className="font-serif text-2xl text-ink">El día</h2>
-          <div className="mt-5">
-            <Timeline items={event.schedule} />
-          </div>
-        </Section>
-      </Reveal>
-
-      <Reveal>
-        <Section>
-          <h2 className="font-serif text-2xl text-ink">Recuerdos</h2>
-          <p className="mt-2 text-sm text-ink/55">
-            Deslizá para ver más.
-          </p>
-        </Section>
-      </Reveal>
-
-      <PhotoCarousel images={event.gallery} />
-
-      <Reveal>
-        <Section>
-          <h2 className="font-serif text-2xl text-ink">Cómo funciona</h2>
-          <p className="mt-3 text-base leading-relaxed text-ink/75">
-            Durante la fiesta vas a encontrar un código QR en tu mesa. Escanealo
-            con el celular, sacá fotos y se van proyectando en vivo en las
-            pantallas del salón. No hace falta descargar ninguna app.
-          </p>
-        </Section>
-      </Reveal>
-
-      <Reveal>
-        <Section>
+      {/* RSVP */}
+      <section
+        id="rsvp"
+        className="flex min-h-dvh snap-start flex-col items-center justify-center px-6"
+      >
+        <div className="w-full max-w-md">
           {!hasToken ? (
-            <p className="text-base leading-relaxed text-ink/75">
+            <p className="text-center text-lg leading-relaxed text-ink/75 sm:text-xl">
               Confirmá tu asistencia desde el link que te enviamos.
             </p>
           ) : !tokenValid ? (
-            <p className="text-base leading-relaxed text-ink/75">
-              Este link de confirmación no es válido. Revisá el mensaje que te
-              enviamos.
+            <p className="text-center text-lg leading-relaxed text-ink/75 sm:text-xl">
+              Este link no es válido. Revisá el mensaje que te enviamos.
             </p>
           ) : existing ? (
             <div className="flex flex-col gap-2">
-              <h2 className="font-serif text-2xl text-ink">
+              <h2
+                className="text-center font-serif text-4xl text-ink sm:text-5xl"
+                style={{ textWrap: "balance" }}
+              >
                 Ya confirmaste tu asistencia
               </h2>
-              <p className="text-base leading-relaxed text-ink/75">
+              <p className="text-center text-lg leading-relaxed text-ink/75 sm:text-xl">
                 {existing.name} —{" "}
                 {existing.status === "accepted"
                   ? `vas con ${existing.guests} ${existing.guests === 1 ? "persona" : "personas"}`
                   : "no vas a poder ir"}
                 {existing.dietary ? <> · {existing.dietary}</> : null}
               </p>
-              <p className="text-sm text-ink/55">
+              <p className="text-center text-base text-ink/55 sm:text-lg">
                 Cualquier cambio, comunicate con {event.contactName} al{" "}
                 {event.contactPhone}.
               </p>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <h2 className="font-serif text-2xl text-ink">
+              <h2
+                className="text-center font-serif text-4xl text-ink sm:text-5xl"
+                style={{ textWrap: "balance" }}
+              >
                 Confirmá tu asistencia
               </h2>
               <RSVPForm
@@ -168,8 +121,8 @@ export default async function Page({ params, searchParams }: Props) {
               />
             </div>
           )}
-        </Section>
-      </Reveal>
+        </div>
+      </section>
     </main>
   );
 }

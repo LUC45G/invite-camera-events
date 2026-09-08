@@ -24,6 +24,15 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
+
+/* Scroll snap container */
+.snap-container {
+  height: 100dvh;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
 }
 
 /* Focus visible global */
@@ -46,41 +55,10 @@ body {
   transform: none;
 }
 
-/* Timeline staggered reveal */
-.reveal-stagger > * {
-  opacity: 0;
-  transform: translateY(8px);
-  transition:
-    opacity 0.5s ease-out,
-    transform 0.5s ease-out;
-}
-
-.reveal-stagger.is-visible > * {
-  opacity: 1;
-  transform: none;
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .reveal,
-  .reveal-stagger > * {
+  .reveal {
     opacity: 1;
     transform: none;
     transition: none;
   }
-}
-
-/* Carrusel scroll-snap */
-.carousel {
-  scroll-snap-type: x mandatory;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  touch-action: pan-x;
-}
-
-.carousel::-webkit-scrollbar {
-  display: none;
-}
-
-.carousel > .carousel-item {
-  scroll-snap-align: center;
 }

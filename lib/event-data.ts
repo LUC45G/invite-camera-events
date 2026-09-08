@@ -16,8 +16,6 @@ export type WeddingEvent = {
   contactPhone: string;
   heroImage: string;
   story: { heading: string; paragraphs: string[]; image: string };
-  gallery: string[];
-  schedule: { time: string; label: string; detail: string }[];
 };
 
 export const weddingEvent: WeddingEvent = {
@@ -42,21 +40,6 @@ export const weddingEvent: WeddingEvent = {
     ],
     image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
   },
-  gallery: [
-    "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
-    "https://images.unsplash.com/photo-1465495976277-4387d4b0b4c6",
-    "https://images.unsplash.com/photo-1520854221256-17451cc331bf",
-    "https://images.unsplash.com/photo-1511285560929-80b456fea0bc",
-    "https://images.unsplash.com/photo-1537633552985-df8429e8048b",
-    "https://images.unsplash.com/photo-1519225421980-715cb0215aed",
-    "https://images.unsplash.com/photo-1606216794074-735e91aa2c92",
-  ],
-  schedule: [
-    { time: "18:00", label: "Ceremonia", detail: "Juramento y anillos" },
-    { time: "19:00", label: "Cóctel", detail: "Brindis de bienvenida" },
-    { time: "20:00", label: "Cena", detail: "Menú especial" },
-    { time: "22:00", label: "Fiesta", detail: "Baile y música en vivo" },
-  ],
 };
 
 export function getEvent(slug: string): WeddingEvent | null {

@@ -1,24 +1,36 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 
 type Props = {
   images: string[];
 };
 
-// Carrusel horizontal: en el viewport se ven 2 fotos enteras y 2 mitades
-// (una a cada lado) para sugerir que hay más para deslizar.
+// Carrusel horizontal con loop infinito por índice (módulo sobre el array).
 export function PhotoCarousel({ images }: Props) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const count = images.length;
 
-  function scrollByCards(dir: 1 | -1) {
-    const track = trackRef.current;
-    if (!track) return;
-    const card = track.firstElementChild as HTMLElement | null;
-    const step = card ? card.offsetWidth + 16 : track.offsetWidth;
-    track.scrollBy({ left: dir * step, behavior: "smooth" });
-  }
+  const getStep = useCallback(() => {
+    const card = trackRef.current?.firstElementChild as HTMLElement | null;
+    return card ? card.offsetWidth + 16 : 0;
+  }, []);
+
+  const goTo = useCallback(
+    (index: number) => {
+      const track = trackRef.current;
+      if (!track) return;
+      const step = getStep();
+      track.scrollTo({ left: index * step, behavior: "smooth" });
+      setActiveIndex(index);
+    },
+    [getStep],
+  );
+
+  const prev = () => goTo((activeIndex - 1 + count) % count);
+  const next = () => goTo((activeIndex + 1) % count);
 
   return (
     <div className="relative">
@@ -45,7 +57,7 @@ export function PhotoCarousel({ images }: Props) {
       <div className="mt-4 flex items-center justify-center gap-3">
         <button
           type="button"
-          onClick={() => scrollByCards(-1)}
+          onClick={prev}
           aria-label="Anterior"
           className="flex h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-ivory text-ink transition-colors hover:border-bronze hover:text-bronze"
         >
@@ -53,7 +65,7 @@ export function PhotoCarousel({ images }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => scrollByCards(1)}
+          onClick={next}
           aria-label="Siguiente"
           className="flex h-10 w-10 items-center justify-center rounded-full border border-ink/20 bg-ivory text-ink transition-colors hover:border-bronze hover:text-bronze"
         >

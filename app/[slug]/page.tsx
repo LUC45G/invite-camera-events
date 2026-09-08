@@ -107,12 +107,8 @@ export default async function Page({ params, searchParams }: Props) {
       </Reveal>
 
       <Reveal>
-        <Section>
-          <h2 className="font-serif text-2xl text-ink">Recuerdos</h2>
-          <p className="mt-2 text-sm text-ink/55">
-            Deslizá para ver más.
-          </p>
-        </Section>
+        <h2 className="font-serif text-2xl text-ink">Recuerdos</h2>
+        <p className="mt-2 text-sm text-ink/55">Deslizá para ver más.</p>
       </Reveal>
 
       <PhotoCarousel images={event.gallery} />

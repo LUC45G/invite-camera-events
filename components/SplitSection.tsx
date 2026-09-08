@@ -10,21 +10,21 @@ type Props = {
 
 export function SplitSection({ image, alt, reverse, children }: Props) {
   return (
-    <section
-      className={`grid min-h-dvh snap-start grid-rows-[1fr] ${
-        reverse ? "grid-cols-[35fr_65fr]" : "grid-cols-[65fr_35fr]"
-      } max-md:grid-cols-1`}
-    >
+    <section className={`flex min-h-dvh snap-start flex-col max-md:min-h-dvh md:grid md:grid-rows-[1fr] ${
+      reverse ? "md:grid-cols-[35fr_65fr]" : "md:grid-cols-[65fr_35fr]"
+    }`}>
+      {/* Texto */}
       <div
-        className={`flex flex-col items-center justify-center overflow-y-auto px-8 py-16 max-md:px-6 max-md:py-12 ${
-          reverse ? "max-md:order-2 md:col-start-1" : "max-md:order-2 md:col-start-2"
+        className={`flex flex-1 flex-col items-center justify-center overflow-y-auto px-8 py-16 max-md:order-2 max-md:px-6 max-md:py-12 ${
+          reverse ? "md:col-start-1" : "md:col-start-2"
         }`}
       >
         {children}
       </div>
+      {/* Foto */}
       <div
-        className={`relative h-full overflow-hidden ${
-          reverse ? "max-md:order-1 md:col-start-2" : "max-md:order-1 md:col-start-1"
+        className={`relative overflow-hidden max-md:order-1 max-md:h-[50dvh] md:h-full ${
+          reverse ? "md:col-start-2" : "md:col-start-1"
         }`}
       >
         <Image

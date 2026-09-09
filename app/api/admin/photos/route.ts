@@ -3,6 +3,7 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { cloudinary } from "@/lib/cloudinary";
+import { broadcastPhotoAdded } from "@/lib/sse";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,9 @@ export async function POST(request: Request) {
   if (action === "approve" || action === "reject") {
     const status = action === "approve" ? "approved" : "rejected";
     await sql`UPDATE photos SET status = ${status} WHERE id = ${id}`;
+    if (status === "approved") {
+      broadcastPhotoAdded({ id: photo.id, url: "" });
+    }
     return NextResponse.json({ ok: true, status });
   }
 

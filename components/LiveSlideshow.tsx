@@ -71,7 +71,12 @@ export function LiveSlideshow({ slug, interval }: Props) {
       });
 
       es.onerror = () => setConnected(false);
-      es.onopen = () => setConnected(true);
+      es.onopen = () => {
+        setConnected(true);
+        // al reconectar refrescar lo que pudo haber entrado durante la caída
+        const p = photosRef.current;
+        load(p.length ? p[p.length - 1].created_at : undefined);
+      };
       return es;
     };
 

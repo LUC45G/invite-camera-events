@@ -87,16 +87,25 @@ export function AdminModeration() {
             {stats.rejected ?? 0} rechazadas
           </p>
         </div>
-        <button
-          type="button"
-          onClick={async () => {
-            await fetch("/api/admin/login", { method: "DELETE" });
-            window.location.reload();
-          }}
-          className="rounded-sm border border-ink/20 bg-ivory px-3 py-1.5 font-sans text-sm text-ink"
-        >
-          Salir
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={load}
+            className="rounded-sm bg-bronze px-4 py-1.5 font-sans text-sm text-ivory transition-colors hover:bg-bronze/90"
+          >
+            Actualizar
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch("/api/admin/login", { method: "DELETE" });
+              window.location.reload();
+            }}
+            className="rounded-sm border border-ink/20 bg-ivory px-3 py-1.5 font-sans text-sm text-ink"
+          >
+            Salir
+          </button>
+        </div>
       </header>
 
       {notification && (
@@ -173,14 +182,19 @@ export function AdminModeration() {
               {pending.map((p) => (
                 <div
                   key={p.id}
-                  className="overflow-hidden rounded-sm border border-ink/10 bg-ivory"
+                  className="relative overflow-hidden rounded-sm border border-ink/10 bg-ivory"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={p.thumbnail_url}
                     alt=""
-                    className={`aspect-4/3 w-full object-cover ${p.nsfw_score ? "border-2 border-red-800 bg-red-200/30" : ""}`}
+                    className={`aspect-4/3 w-full object-cover ${p.nsfw_score ? "border-2 border-red-800" : ""}`}
                   />
+                  {p.nsfw_score !== null && p.nsfw_score !== undefined && (
+                    <div className="absolute left-1 top-1 rounded-sm bg-red-900/90 px-1.5 py-0.5 font-sans text-[10px] font-medium tracking-wide text-white">
+                      NSFW {Math.round(p.nsfw_score * 100)}%
+                    </div>
+                  )}
                   <div className="flex gap-1 p-2">
                     <button
                       type="button"
@@ -220,10 +234,15 @@ export function AdminModeration() {
               {approved.map((p) => (
                 <div
                   key={p.id}
-                  className="rounded-sm border border-ink/10 bg-ivory p-1"
+                  className="relative rounded-sm border border-ink/10 bg-ivory p-1"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.thumbnail_url} alt="" className="aspect-4/3 w-full rounded-sm object-cover" />
+                  {p.nsfw_score !== null && p.nsfw_score !== undefined && (
+                    <div className="absolute left-2 top-2 rounded-sm bg-red-900/90 px-1.5 py-0.5 font-sans text-[10px] font-medium tracking-wide text-white">
+                      NSFW {Math.round(p.nsfw_score * 100)}%
+                    </div>
+                  )}
                   <div className="flex gap-1 pt-1">
                     <span className="flex-1" />
                     <button

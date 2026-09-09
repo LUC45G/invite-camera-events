@@ -17,6 +17,18 @@
 3. Editar las variables al inicio de `db/seed.sql` y ejecutarlo.
 4. El SELECT final imprime `table_number` + `qr_token` → guardar esa salida.
 
+### 2b. Reset (borrar todo y re-seed)
+
+Editar la sección `CONFIGURACIÓN` de `scripts/reset-db.mts` (evento, mesas, reveal) y:
+
+```bash
+npm run db:reset        # muestra el plan, NO ejecuta nada
+npm run db:reset -- --yes  # ejecuta el reset real
+```
+
+- Trunca todas las tablas, re-aplica schema y re-seed.
+- **Regenera todos los tokens** → los QRs impresos anteriores quedan inválidos. Re-imprimir después.
+
 ## 3. QRs e invitaciones
 
 - **QR por mesa**: URL `https://<dominio>/<slug>/upload?qr=<qr_token>` → generador (qrencode o web) → imprimir, uno por mesa.

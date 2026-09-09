@@ -11,6 +11,21 @@ const controlSchema = z.object({
   value: z.number().int().min(2).max(60).optional(),
 });
 
+// GET: configuración actual de la proyección
+export async function GET() {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  const rows = (await sql`
+    SELECT slideshow_interval FROM events LIMIT 1
+  `) as { slideshow_interval: number }[];
+
+  return NextResponse.json({
+    interval: rows[0]?.slideshow_interval ?? 5,
+  });
+}
+
 // Control del slideshow desde el panel admin.
 export async function POST(request: Request) {
   if (!(await isAdmin())) {

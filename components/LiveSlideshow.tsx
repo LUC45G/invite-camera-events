@@ -36,15 +36,16 @@ export function LiveSlideshow({ slug, interval }: Props) {
     load();
   }, [load]);
 
-  // auto-avance
+  // auto-avance (loop cada `speed` segundos, con 2+ fotos)
   useEffect(() => {
     if (paused || photos.length < 2) return;
+    setIndex((i) => i % photos.length); // re-alinear si el índice quedó mayor que la lista
     const t = setInterval(
-      () => setIndex((i) => (i + 1) % photosRef.current.length),
+      () => setIndex((i) => (i + 1) % photos.length),
       speed * 1000,
     );
     return () => clearInterval(t);
-  }, [paused, speed]);
+  }, [paused, speed, photos.length]);
 
   // SSE: fotos nuevas (append, sin resetear índice) + controles de admin
   useEffect(() => {

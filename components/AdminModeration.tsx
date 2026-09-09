@@ -19,7 +19,16 @@ export function AdminModeration() {
   const [stats, setStats] = useState<Record<string, number>>({});
   const [notification, setNotification] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const [speed, setSpeed] = useState(5);
+  const [speed, setSpeed] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/admin/slideshow")
+      .then((r) => r.json())
+      .then((d: { interval?: number }) => {
+        if (typeof d.interval === "number") setSpeed(d.interval);
+      })
+      .catch(() => setSpeed(5));
+  }, []);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/admin/photos?slug=${SLUG}`);
@@ -160,15 +169,16 @@ export function AdminModeration() {
                 type="number"
                 min={2}
                 max={60}
-                value={speed}
+                value={speed ?? ""}
                 onChange={(e) => setSpeed(Number(e.target.value))}
                 className="w-16 rounded-sm border border-ink/20 bg-ivory px-2 py-2 text-base [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="text-ink/55">segundos</span>
               <button
                 type="button"
-                onClick={() => control("speed", speed)}
-                className="rounded-sm bg-bronze px-3 py-2 text-base text-ivory"
+                disabled={speed === null}
+                onClick={() => speed !== null && control("speed", speed)}
+                className="rounded-sm bg-bronze px-3 py-2 text-base text-ivory disabled:opacity-60"
               >
                 Aplicar
               </button>

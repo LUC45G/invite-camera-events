@@ -37,6 +37,7 @@ export type UploadSession = {
   id: string;
   event_id: string;
   table_qr_id: string;
+  session_token: string;
   photo_count: number;
   first_seen_at: string;
   last_seen_at: string;

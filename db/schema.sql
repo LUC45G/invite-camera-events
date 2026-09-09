@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS upload_sessions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   table_qr_id UUID NOT NULL REFERENCES table_qrs(id) ON DELETE CASCADE,
+  session_token VARCHAR(64) UNIQUE NOT NULL,
   photo_count INT DEFAULT 0,
   first_seen_at TIMESTAMPTZ DEFAULT now(),
   last_seen_at TIMESTAMPTZ DEFAULT now()

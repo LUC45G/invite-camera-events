@@ -7,13 +7,12 @@ cloudinary.config({
   api_secret: env.CLOUDINARY_API_SECRET,
 });
 
-// Firma para signed uploads. Incluye el qr_token como contexto para
-// que no se pueda firmar sin un QR válido.
-export function signUpload(qrToken: string) {
+// Firma para subida directa firmada: el cliente envía timestamp + folder a Cloudinary.
+export function signUpload(folder: string) {
   const timestamp = Math.round(Date.now() / 1000);
   const paramsToSign = {
     timestamp: String(timestamp),
-    context: `qr_token=${qrToken}`,
+    folder,
   };
   const signature = cloudinary.utils.api_sign_request(
     paramsToSign,
@@ -24,6 +23,14 @@ export function signUpload(qrToken: string) {
     signature,
     apiKey: env.CLOUDINARY_API_KEY,
   };
+}
+
+// URL de thumbnail (w 480, f_auto, q_auto) para un publicId subido.
+export function thumbnailUrl(publicId: string) {
+  return cloudinary.url(publicId, {
+    transformation: [{ width: 480, crop: "limit", quality: "auto", fetch_format: "auto" }],
+    secure: true,
+  });
 }
 
 export { cloudinary };

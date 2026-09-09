@@ -17,6 +17,7 @@ const completeSchema = z.object({
   height: z.number().int().positive().optional(),
   mime: z.string().max(50).optional(),
   sizeKb: z.number().int().nonnegative().optional(),
+  nsfwScore: z.number().min(0).max(1).optional(),
 });
 
 export async function POST(request: Request) {
@@ -32,7 +33,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const { sessionToken, publicId, width, height, mime, sizeKb } = parsed.data;
+  const { sessionToken, publicId, width, height, mime, sizeKb, nsfwScore } = parsed.data;
 
   const session = await findSession(sessionToken);
   if (!session) {
@@ -68,12 +69,12 @@ export async function POST(request: Request) {
       event_id, table_qr_id, upload_session_id,
       cloudinary_public_id, cloudinary_url, thumbnail_url,
       original_width, original_height, mime_type, size_kb,
-      status
+      nsfw_score, status
     ) VALUES (
       ${session.event_id}, ${session.table_qr_id}, ${session.id},
       ${publicId}, ${full}, ${thumb},
       ${width ?? null}, ${height ?? null}, ${mime ?? null}, ${sizeKb ?? null},
-      'pending'
+      ${nsfwScore ?? null}, 'pending'
     )
     RETURNING id`;
 

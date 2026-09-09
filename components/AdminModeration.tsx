@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { QrSection } from "@/components/QrSection";
 
 type Photo = {
   id: string;
@@ -130,6 +131,7 @@ export function AdminModeration() {
       )}
 
       <div className="mx-auto max-w-5xl">
+        <QrSection slug={SLUG} />
         {/* Control de proyección */}
         <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
           <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">

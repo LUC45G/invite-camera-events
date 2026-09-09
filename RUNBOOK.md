@@ -58,6 +58,16 @@ npm run db:reset -- --yes  # ejecuta el reset real
 | QR perdido | Regenerar token de esa mesa y reimprimir |
 | Borrar todo al final | Admin → opción "borrar todo" (borra DB + Cloudinary) |
 
+### 6b. Prueba de carga (dry-run, sin fotos reales)
+
+```bash
+npm run load:test                                    # 50 sesiones + 20 streams en localhost
+npm run load:test -- --host https://<preview>.vercel.app --n 100 --m 50
+```
+
+Mide que el endpoint de sesión responda (403 esperado = QR ficticio pero endpoint sano)
+y que los streams SSE reciban heartbeat.
+
 ## 7. Post-evento
 
 1. Descargar ZIP de fotos aprobadas desde admin.

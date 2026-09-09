@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:reset": "node --experimental-strip-types scripts/reset-db.mts"
+    "db:reset": "node --experimental-strip-types scripts/reset-db.mts",
+    "load:test": "node --experimental-strip-types scripts/load-test.mts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -24,6 +25,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "dotenv": "^17.4.2",

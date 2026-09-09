@@ -20,6 +20,7 @@ export function CameraUploader({ slug, qr }: Props) {
   const [uploading, setUploading] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [nsfwScore, setNsfwScore] = useState<number | null>(null);
 
   // reanudar/crear sesión
   useEffect(() => {
@@ -107,7 +108,10 @@ export function CameraUploader({ slug, qr }: Props) {
         if (blob) {
           streamRef.current?.getTracks().forEach((t) => t.stop());
           setPreviewBlob(blob);
+          setNsfwScore(null);
           setPhase("preview");
+          // NSFW en paralelo, sin bloquear: el modelo se carga bajo demanda
+          classifyNsfw(canvas);
         }
       },
       "image/jpeg",
@@ -115,8 +119,28 @@ export function CameraUploader({ slug, qr }: Props) {
     );
   }, []);
 
+  // Clasifica la captura con nsfwjs. Nunca bloquea la subida: si el modelo
+  // falla o tarda, el score queda null y la foto entra como pendiente normal.
+  async function classifyNsfw(canvas: HTMLCanvasElement) {
+    try {
+      const nsfw = await import("nsfwjs").then((m) => m.load());
+      const predictions = await Promise.race([
+        nsfw.classify(canvas),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("timeout")), 12000),
+        ),
+      ]);
+      const bad = predictions.find(
+        (p) => p.className === "Porn" || p.className === "Hentai" || p.className === "Sexy",
+      );
+      setNsfwScore(bad ? bad.probability : 0);
+    } catch {
+      setNsfwScore(null);
+    }
+  }
+
   // subir la foto: sign → Cloudinary → complete
-  async function upload(blob: Blob) {
+  async function upload(blob: Blob, score: number | null) {
     if (!sessionToken) return;
     setUploading(true);
     setError(null);
@@ -154,6 +178,7 @@ export function CameraUploader({ slug, qr }: Props) {
           height: cloud.height,
           mime: "image/jpeg",
           sizeKb: Math.round(cloud.bytes / 1024),
+          nsfwScore: score ?? undefined,
         }),
       });
       const complete = await completeRes.json();
@@ -240,7 +265,7 @@ export function CameraUploader({ slug, qr }: Props) {
               type="button"
               disabled={uploading || !previewBlob}
               aria-busy={uploading}
-              onClick={() => previewBlob && upload(previewBlob)}
+              onClick={() => previewBlob && upload(previewBlob, nsfwScore)}
               className="rounded-sm bg-bronze px-8 py-3 text-lg text-ivory transition-colors hover:bg-bronze/90 disabled:opacity-60"
             >
               {uploading ? "Subiendo…" : "Subir"}

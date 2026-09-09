@@ -12,6 +12,7 @@ export function LiveSlideshow({ slug, interval }: Props) {
   const [paused, setPaused] = useState(false);
   const [speed, setSpeed] = useState(interval);
   const [connected, setConnected] = useState(true);
+  const [cycle, setCycle] = useState(0); // cualquier control reinicia el timer
 
   const photosRef = useRef<Photo[]>([]);
   photosRef.current = photos;
@@ -37,15 +38,16 @@ export function LiveSlideshow({ slug, interval }: Props) {
   }, [load]);
 
   // auto-avance (loop cada `speed` segundos, con 2+ fotos)
+  // `cycle` reinicia el timer en cada cambio (manual o automático)
   useEffect(() => {
     if (paused || photos.length < 2) return;
     setIndex((i) => i % photos.length); // re-alinear si el índice quedó mayor que la lista
-    const t = setInterval(
-      () => setIndex((i) => (i + 1) % photos.length),
-      speed * 1000,
-    );
+    const t = setInterval(() => {
+      setIndex((i) => (i + 1) % photos.length);
+      setCycle((c) => c + 1);
+    }, speed * 1000);
     return () => clearInterval(t);
-  }, [paused, speed, photos.length]);
+  }, [paused, speed, photos.length, cycle]);
 
   // SSE: fotos nuevas (append, sin resetear índice) + controles de admin
   useEffect(() => {
@@ -64,10 +66,19 @@ export function LiveSlideshow({ slug, interval }: Props) {
           value?: number;
         };
         const len = Math.max(photosRef.current.length, 1);
-        if (c.action === "pause") setPaused(true);
+        if (c.action === "pause") {
+          setPaused(true);
+          setCycle((n) => n + 1);
+        }
         if (c.action === "resume") setPaused(false);
-        if (c.action === "next") setIndex((i) => (i + 1) % len);
-        if (c.action === "prev") setIndex((i) => (i - 1 + len) % len);
+        if (c.action === "next") {
+          setIndex((i) => (i + 1) % len);
+          setCycle((n) => n + 1);
+        }
+        if (c.action === "prev") {
+          setIndex((i) => (i - 1 + len) % len);
+          setCycle((n) => n + 1);
+        }
         if (c.action === "speed" && c.value) setSpeed(c.value);
       });
 
@@ -87,16 +98,26 @@ export function LiveSlideshow({ slug, interval }: Props) {
 
   const current = photos[index];
 
+  void current;
+
   return (
     <div className="fixed inset-0 bg-black text-white">
-      {current ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={current.cloudinary_url}
-          alt="Foto del evento"
-          className="h-full w-full object-contain"
-          key={current.id}
-        />
+      {photos.length > 0 ? (
+        <div className="relative h-full w-full">
+          {photos.map((p, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={p.id}
+              src={p.cloudinary_url}
+              alt={i === index ? "Foto del evento" : ""}
+              aria-hidden={i !== index}
+              className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-1000 ease-out ${
+                i === index ? "z-10 opacity-100" : "z-0 opacity-0"
+              }`}
+              loading={i <= index + 2 ? "eager" : "lazy"}
+            />
+          ))}
+        </div>
       ) : (
         <div className="flex h-full flex-col items-center justify-center gap-4">
           <p className="font-sans text-2xl tracking-[0.3em] uppercase opacity-70">

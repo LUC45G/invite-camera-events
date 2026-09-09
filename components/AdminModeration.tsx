@@ -88,10 +88,16 @@ export function AdminModeration() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <a
+            href={`/api/admin/export?slug=${SLUG}`}
+            className="inline-block rounded-sm bg-bronze px-4 py-1.5 font-sans text-sm text-ivory transition-colors hover:bg-bronze/90"
+          >
+            Descargar ZIP
+          </a>
           <button
             type="button"
             onClick={load}
-            className="rounded-sm bg-bronze px-4 py-1.5 font-sans text-sm text-ivory transition-colors hover:bg-bronze/90"
+            className="rounded-sm border border-ink/20 bg-ivory px-4 py-1.5 font-sans text-sm text-ink"
           >
             Actualizar
           </button>

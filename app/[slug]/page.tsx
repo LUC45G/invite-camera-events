@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getEvent } from "@/lib/event-data";
-import { findRsvp, isTokenValid } from "@/lib/rsvp-store";
+import { findRsvp, isTokenValid } from "@/lib/rsvp-db";
 import { RSVPForm } from "@/components/RSVPForm";
 import { SplitSection } from "@/components/SplitSection";
 import { Reveal } from "@/components/Reveal";
@@ -20,8 +20,8 @@ export default async function Page({ params, searchParams }: Props) {
   const query = await searchParams;
   const token = typeof query.token === "string" ? query.token : "";
   const hasToken = token.length > 0;
-  const tokenValid = hasToken && isTokenValid(token);
-  const existing = tokenValid ? findRsvp(token) : undefined;
+  const tokenValid = hasToken && (await isTokenValid(token));
+  const existing = tokenValid ? await findRsvp(token) : undefined;
 
   return (
     <div className="snap-container">

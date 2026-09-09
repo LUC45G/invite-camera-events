@@ -43,3 +43,6 @@ next-env.d.ts
 
 # local tooling
 .atl/
+
+# local agent tooling
+.claude/

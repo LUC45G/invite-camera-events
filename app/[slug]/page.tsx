@@ -5,6 +5,10 @@ import { RSVPForm } from "@/components/RSVPForm";
 import { SplitSection } from "@/components/SplitSection";
 import { Reveal } from "@/components/Reveal";
 import { Countdown } from "@/components/Countdown";
+import { BackToTop } from "@/components/BackToTop";
+import { ScrollDots } from "@/components/ScrollDots";
+import { Stagger } from "@/components/Stagger";
+import { FaqItem } from "@/components/FaqItem";
 
 type Props = PageProps<"/[slug]">;
 
@@ -23,128 +27,130 @@ export default async function Page({ params, searchParams }: Props) {
     <div className="snap-container">
       {/* 1. Hero */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6 text-center">
-        <Reveal>
-          <p className="font-sans text-sm tracking-[0.3em] text-bronze uppercase sm:text-base">
+        <Stagger delay={0}>
+          <p className="font-sans text-sm tracking-[0.3em] text-bronze uppercase">
             Nos casamos
           </p>
-          <h1 className="mt-4 font-serif text-5xl leading-[1.1] text-ink sm:text-7xl" style={{ textWrap: "balance" }}>
+        </Stagger>
+        <Stagger delay={120}>
+          <h1 className="mt-4 font-serif leading-[1.1] text-ink" style={{ textWrap: "balance", fontSize: "clamp(3rem, 8vw, 4.5rem)" }}>
             {event.coupleNames}
           </h1>
+        </Stagger>
+        <Stagger delay={240}>
           <p className="mt-4 font-sans text-lg text-ink/70 sm:text-xl">
             {event.date}
           </p>
+        </Stagger>
+        <Stagger delay={360}>
           <div className="mt-8">
             <Countdown target={event.weddingTimestamp} />
           </div>
+        </Stagger>
+        <Stagger delay={480}>
           <a
             href="#rsvp"
             className="mt-10 inline-block rounded-sm bg-bronze px-8 py-3 text-base text-ivory transition-colors hover:bg-bronze/90 sm:text-lg"
           >
-            Confirmar invitación
+            Confirmar asistencia
           </a>
-        </Reveal>
+        </Stagger>
       </section>
 
       {/* 2. Nuestra historia — foto izquierda (65%), texto derecha (35%) */}
       <SplitSection image={event.story.image} alt="Nosotros">
         <Reveal>
-          <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
-            {event.story.heading}
-          </h2>
-          {event.story.paragraphs.map((p) => (
-            <p
-              key={p.slice(0, 24)}
-              className="mt-3 text-base leading-relaxed text-ink/75 sm:text-lg"
-            >
-              {p}
-            </p>
-          ))}
+          <Stagger delay={0}>
+            <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
+              {event.story.heading}
+            </h2>
+          </Stagger>
+          <Stagger delay={150}>
+            <div>
+              {event.story.paragraphs.map((p) => (
+                <p
+                  key={p.slice(0, 24)}
+                  className="mt-3 text-base leading-relaxed text-ink/70 sm:text-lg"
+                >
+                  {p}
+                </p>
+              ))}
+            </div>
+          </Stagger>
         </Reveal>
       </SplitSection>
 
       {/* 3. Ceremonia y festejo — texto izquierda, foto derecha (65%) */}
       <SplitSection image={event.heroImage} alt="Ceremonia" reverse>
         <Reveal>
-          <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
-            Ceremonia y festejo
-          </h2>
-          <p className="mt-3 text-base leading-relaxed text-ink/75 sm:text-lg">
-            {event.venue}
-            <br />
-            {event.venueAddress}
-          </p>
-          <a
-            href={event.mapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-block border-b border-ink/20 pb-0.5 text-base text-bronze transition-colors hover:border-bronze sm:text-lg"
-          >
-            Cómo llegar
-          </a>
+          <Stagger delay={0}>
+            <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
+              Ceremonia y festejo
+            </h2>
+          </Stagger>
+          <Stagger delay={150}>
+            <div>
+              <p className="mt-3 text-base leading-relaxed text-ink/70 sm:text-lg">
+                {event.venue}
+                <br />
+                {event.venueAddress}
+              </p>
+              <a
+                href={event.mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-4 inline-block border-b border-ink/20 pb-0.5 text-base text-bronze transition-colors hover:border-bronze sm:text-lg"
+              >
+                Cómo llegar
+              </a>
+            </div>
+          </Stagger>
         </Reveal>
       </SplitSection>
 
       {/* 4. FAQ */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
-        <Reveal>
-          <div className="max-w-lg text-center">
+        <div className="w-[300px] sm:w-[400px]">
+          <Reveal>
             <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>Preguntas</h2>
-            <div className="mt-6 flex flex-col gap-5 text-left">
-              <div>
-                <h3 className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">
-                  Código de vestimenta
-                </h3>
-                <p className="mt-1 text-base leading-relaxed text-ink/75 sm:text-lg">
-                  Elegante. Evitar color blanco o beige.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">
-                  Horario
-                </h3>
-                <p className="mt-1 text-base leading-relaxed text-ink/75 sm:text-lg">
-                  La ceremonia empieza a las {event.time}. Llegar 10 minutos antes.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">
-                  Estacionamiento
-                </h3>
-                <p className="mt-1 text-base leading-relaxed text-ink/75 sm:text-lg">
-                  El salón tiene estacionamiento propio.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">
-                  Niños
-                </h3>
-                <p className="mt-1 text-base leading-relaxed text-ink/75 sm:text-lg">
-                  La fiesta es solo para adultos.
-                </p>
-              </div>
-            </div>
+          </Reveal>
+          <div className="mt-6 flex flex-col gap-0 text-left">
+            {[
+              { q: "Código de vestimenta", a: "Elegante. Evitar color blanco o beige." },
+              { q: "Horario", a: `La ceremonia empieza a las ${event.time}. Llegar 10 minutos antes.` },
+              { q: "Estacionamiento", a: "El salón tiene estacionamiento propio." },
+              { q: "Niños", a: "La fiesta es solo para adultos." },
+            ].map((faq, i) => (
+              <Stagger key={faq.q} delay={100 + i * 100}>
+                <FaqItem question={faq.q} answer={faq.a} />
+              </Stagger>
+            ))}
           </div>
-        </Reveal>
+        </div>
       </section>
 
       {/* 5. RSVP */}
       <section id="rsvp" className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
         <Reveal>
-          <div className="w-full max-w-md">
-            {!hasToken ? (
-              <p className="text-center text-base leading-relaxed text-ink/75 sm:text-lg">
+          <div className="w-[300px] sm:w-[400px]">
+            <Stagger delay={0}>
+              <h2 className="text-center font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
+                {existing ? "Ya confirmaste tu asistencia" : "Confirmá tu asistencia"}
+              </h2>
+            </Stagger>
+            <Stagger delay={150}>
+              <div className={existing ? "flex flex-col gap-2" : "flex flex-col gap-4"}>
+                {!hasToken ? (
+              <p className="text-center text-base leading-relaxed text-ink/70 sm:text-lg">
                 Confirmá tu asistencia desde el link que te enviamos.
               </p>
             ) : !tokenValid ? (
-              <p className="text-center text-base leading-relaxed text-ink/75 sm:text-lg">
+              <p className="text-center text-base leading-relaxed text-ink/70 sm:text-lg">
                 Este link no es válido. Revisá el mensaje que te enviamos.
               </p>
             ) : existing ? (
               <div className="flex flex-col gap-2">
-                <h2 className="text-center font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
-                  Ya confirmaste tu asistencia
-                </h2>
-                <p className="text-center text-base leading-relaxed text-ink/75 sm:text-lg">
+                <p className="text-center text-base leading-relaxed text-ink/70 sm:text-lg">
                   {existing.name} —{" "}
                   {existing.status === "accepted"
                     ? `vas con ${existing.guests} ${existing.guests === 1 ? "persona" : "personas"}`
@@ -158,9 +164,6 @@ export default async function Page({ params, searchParams }: Props) {
               </div>
             ) : (
               <div className="flex flex-col gap-4">
-                <h2 className="text-center font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
-                  Confirmá tu asistencia
-                </h2>
                 <RSVPForm
                   token={token}
                   contactName={event.contactName}
@@ -168,9 +171,13 @@ export default async function Page({ params, searchParams }: Props) {
                 />
               </div>
             )}
+              </div>
+            </Stagger>
           </div>
         </Reveal>
       </section>
+      <ScrollDots />
+      <BackToTop />
     </div>
   );
 }

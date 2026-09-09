@@ -1,0 +1,160 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-08T00:00:00Z",
+  "title": "Design System: QR Wedding",
+  "extensions": {
+    "colorMeta": {
+      "cream": {
+        "role": "neutral",
+        "displayName": "Soft Cream",
+        "canonical": "#DFD1CC",
+        "tonalRamp": ["#3D3533", "#5C5250", "#7A6E6B", "#998B87", "#B8A9A5", "#DFD1CC", "#EAE0DD", "#F5EDEB"]
+      },
+      "bronze": {
+        "role": "primary",
+        "displayName": "Warm Bronze",
+        "canonical": "#B57E7F",
+        "tonalRamp": ["#4A3233", "#6B4949", "#8C6161", "#AD7979", "#B57E7F", "#C49596", "#D3ACAC", "#E2C3C3"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "canonical": "#131313",
+        "tonalRamp": ["#131313", "#2A2A2A", "#414141", "#585858", "#6F6F6F", "#868686", "#9D9D9D", "#B4B4B4"]
+      },
+      "ivory": {
+        "role": "neutral",
+        "displayName": "Clean Ivory",
+        "canonical": "#FFFFFF",
+        "tonalRamp": ["#E0E0E0", "#E6E6E6", "#ECECEC", "#F2F2F2", "#F8F8F8", "#FFFFFF", "#FFFFFF", "#FFFFFF"]
+      },
+      "navy": {
+        "role": "neutral",
+        "displayName": "Classic Navy",
+        "canonical": "#000040",
+        "tonalRamp": ["#000033", "#00004D", "#000066", "#000040", "#1A1A99", "#3333B3", "#4D4DCC", "#6666E6"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Couple names on the hero — the largest, most emotionally weighted text."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Paragraphs, descriptions, form text. Optimized for mobile reading."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Category headers, countdown units, FAQ question labels. Always uppercase with wide tracking."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "reveal-in",
+        "value": "opacity 0.6s ease-out, transform 0.6s ease-out",
+        "purpose": "Scroll-reveal fade-in with 8px upward translate. One-shot, triggered by IntersectionObserver."
+      },
+      {
+        "name": "color-transition",
+        "value": "background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease",
+        "purpose": "Subtle color transitions on button hovers, toggle states, and input focus."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The sole CTA button. Bronze fill, ivory text, minimal radius.",
+      "html": "<button class=\"ds-btn-primary\">Confirmar invitación</button>",
+      "css": ".ds-btn-primary { background: var(--color-bronze, #B57E7F); color: var(--color-ivory, #FFFFFF); padding: 12px 32px; border-radius: 4px; font-family: var(--font-sans); font-size: 1rem; border: none; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-primary:hover { background: rgba(181, 126, 127, 0.9); } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+    },
+    {
+      "name": "Toggle Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Binary choice button used in the RSVP form. Bronze fill when selected, outlined when not.",
+      "html": "<button class=\"ds-toggle\" aria-pressed=\"true\">Voy a estar</button>",
+      "css": ".ds-toggle { padding: 10px 16px; border-radius: 4px; font-family: var(--font-sans); font-size: 1.125rem; border: 1px solid rgba(19,19,19,0.2); background: var(--color-ivory, #FFFFFF); color: var(--color-ink, #131313); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; } .ds-toggle[aria-pressed=\"true\"] { background: var(--color-bronze, #B57E7F); color: var(--color-ivory, #FFFFFF); border-color: var(--color-bronze, #B57E7F); } .ds-toggle:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Standard text field with ivory background, subtle border, bronze focus state.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Nombre</label><input class=\"ds-input\" placeholder=\"Tu nombre…\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: var(--font-sans); font-size: 1rem; letter-spacing: 0.05em; color: rgba(19,19,19,0.7); } .ds-input { background: var(--color-ivory, #FFFFFF); color: var(--color-ink, #131313); border: 1px solid rgba(19,19,19,0.2); border-radius: 4px; padding: 10px 12px; font-family: var(--font-sans); font-size: 1.125rem; transition: border-color 0.15s ease; } .ds-input:focus { border-color: var(--color-bronze, #B57E7F); outline: none; } .ds-input:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+    },
+    {
+      "name": "Split Section",
+      "kind": "custom",
+      "refersTo": "SplitSection",
+      "description": "Asymmetric two-column layout: 65/35 or 35/65 image-text split. Stacks vertically on mobile.",
+      "html": "<section class=\"ds-split\"><div class=\"ds-split-text\"><h2>Heading</h2><p>Body text</p></div><div class=\"ds-split-image\"></div></section>",
+      "css": ".ds-split { display: flex; min-height: 100dvh; } @media (min-width: 768px) { .ds-split { display: grid; grid-template-columns: 65fr 35fr; } } .ds-split-text { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px; } .ds-split-image { position: relative; overflow: hidden; } @media (max-width: 767px) { .ds-split-text { height: 50dvh; padding: 24px; } .ds-split-image { height: 50dvh; } }"
+    },
+    {
+      "name": "Countdown",
+      "kind": "custom",
+      "refersTo": "Countdown",
+      "description": "Four-cell numeric countdown. Serif numerals, uppercase sans labels.",
+      "html": "<div class=\"ds-countdown\"><div class=\"ds-countdown-cell\"><span class=\"ds-countdown-num\">12</span><span class=\"ds-countdown-label\">días</span></div></div>",
+      "css": ".ds-countdown { display: flex; align-items: center; justify-content: center; gap: 16px; } @media (min-width: 640px) { .ds-countdown { gap: 24px; } } .ds-countdown-cell { display: flex; flex-direction: column; align-items: center; } .ds-countdown-num { font-family: var(--font-serif); font-size: 2.5rem; font-variant-numeric: tabular-nums; color: var(--color-ink, #131313); } @media (min-width: 640px) { .ds-countdown-num { font-size: 3rem; } } .ds-countdown-label { font-family: var(--font-sans); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(19,19,19,0.55); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Elegance",
+    "overview": "A restrained, warm visual world built on cream and bronze. The system prioritizes clarity and ceremony over decoration: full-viewport scroll-snap sections create a page-by-page reading rhythm, serif headings carry emotional weight while sans-serif body text stays effortlessly legible. Every element earns its place — no ornamental borders, no gradient washes, no hover theatrics beyond a subtle opacity shift.",
+    "keyCharacteristics": [
+      "Cream background with bronze accent on a strict two-color-plus-neutrals palette",
+      "Full-viewport scroll-snap sections as the primary spatial model",
+      "Serif/sans pairing (Cormorant Garamond + Jost) for display/body hierarchy",
+      "Scroll-reveal animations with prefers-reduced-motion respect",
+      "Minimal elevation — flat surfaces, no shadows, depth through image cropping and split layouts"
+    ],
+    "rules": [
+      {
+        "name": "The Single Accent Rule",
+        "body": "Bronze is the only chromatic accent on any screen. It is used on CTAs, active states, and a handful of label treatments — never more than ~15% of visible area.",
+        "section": "colors"
+      },
+      {
+        "name": "The Navy-is-for-Focus Rule",
+        "body": "Navy appears only as a :focus-visible outline. It is not a text color, background, or decorative element.",
+        "section": "colors"
+      },
+      {
+        "name": "The Uppercase-Letter-Spacing Rule",
+        "body": "Labels and category headers use uppercase with tracking-[0.2em] or tracking-[0.3em]. This creates visual distinction from body text without adding a third font.",
+        "section": "typography"
+      },
+      {
+        "name": "The Text-Balance Rule",
+        "body": "Headings use style={{ textWrap: \"balance\" }} to prevent orphaned words on narrow screens.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do use bronze sparingly — it is the only accent, and its scarcity gives it weight.",
+      "Do use textWrap: \"balance\" on all headings to prevent orphaned words.",
+      "Do respect prefers-reduced-motion — the Reveal component and .reveal CSS class both handle this.",
+      "Do use tabular-nums on any numeric display (countdown, counters) for stable digit widths.",
+      "Do keep split sections at 65/35 — this ratio creates asymmetric visual interest without feeling unbalanced."
+    ],
+    "donts": [
+      "Don't add box-shadows. The system is flat; depth comes from images and typography weight.",
+      "Don't use navy for anything other than focus-visible outlines.",
+      "Don't use more than one accent color on a screen. Bronze is it.",
+      "Don't add decorative borders, dividers, or ornamental elements. Let whitespace do the work.",
+      "Don't use rounded-lg or larger radius — the system's corner language is subtle (4px).",
+      "Don't animate with transforms beyond the established 8px translateY reveal pattern."
+    ]
+  }
+}

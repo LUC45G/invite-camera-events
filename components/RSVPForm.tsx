@@ -19,6 +19,7 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (pending) return;
     setError(null);
     setPending(true);
     try {
@@ -116,7 +117,7 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
             name="guests"
             value={guests}
             onChange={(e) => setGuests(Number(e.target.value))}
-            className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-lg text-ink focus:border-bronze"
+            className="rounded-sm border border-ink/20 bg-ivory px-3 py-2.5 text-lg text-ink focus:border-bronze [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
         </label>
       ) : (
@@ -141,18 +142,19 @@ export function RSVPForm({ token, contactName, contactPhone }: Props) {
         <div className="h-[4.5rem]" />
       )}
 
-      {error && <p className="text-base text-red-700">{error}</p>}
+      {error && <p role="alert" className="text-base text-ink/80">{error}</p>}
 
       <button
         type="submit"
         disabled={pending}
+        aria-busy={pending}
         className="rounded-sm bg-bronze px-4 py-3 text-lg text-ivory transition-colors hover:bg-bronze/90 disabled:opacity-60"
       >
         {pending ? "Enviando…" : "Confirmar asistencia"}
       </button>
 
       <p className="text-base text-ink/55">
-        ¿Cambió algo? Escribile a {contactName} al {contactPhone}.
+        Cualquier cambio, comunicate con {contactName} al {contactPhone}.
       </p>
     </form>
   );

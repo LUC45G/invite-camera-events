@@ -2,16 +2,14 @@
 
 :root {
   --cream: #DFD1CC;
-  --champagne: #B57E7F;
   --ivory: #FFFFFF;
   --ink: #131313;
   --bronze: #B57E7F;
-  --navy: #000080;
+  --navy: #000040;
 }
 
 @theme inline {
   --color-cream: var(--cream);
-  --color-champagne: var(--champagne);
   --color-ivory: var(--ivory);
   --color-ink: var(--ink);
   --color-bronze: var(--bronze);
@@ -27,6 +25,28 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
+}
+
+/* Selection */
+::selection {
+  background: var(--bronze);
+  color: var(--ivory);
+}
+
+/* Scrollbar */
+.snap-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--bronze) transparent;
+}
+.snap-container::-webkit-scrollbar {
+  width: 6px;
+}
+.snap-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.snap-container::-webkit-scrollbar-thumb {
+  background: var(--bronze);
+  border-radius: 3px;
 }
 
 /* Scroll snap container */
@@ -63,4 +83,29 @@ body {
     transform: none;
     transition: none;
   }
+  .faq-item {
+    animation: none;
+    opacity: 1;
+  }
+  .faq-content {
+    grid-template-rows: 1fr !important;
+  }
+}
+
+/* FAQ accordion */
+
+.faq-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease-out;
+  min-width: 0;
+}
+
+.faq-content.open {
+  grid-template-rows: 1fr;
+}
+
+.faq-content > * {
+  overflow: hidden;
+  min-height: 0;
 }

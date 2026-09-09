@@ -98,7 +98,7 @@ A warm, muted palette anchored by cream and bronze. The accent is singular and d
 
 ## Layout
 
-**Spatial Model:** Full-viewport scroll-snap sections. Each section is `100dvh` with `scroll-snap-type: y mandatory` on the container. Sections snap cleanly on scroll.
+**Spatial Model:** Desktop uses full-viewport scroll-snap sections with `scroll-snap-type: y mandatory`. On mobile, the invitation uses natural document scrolling without snap-lock for Android/browser-chrome stability.
 
 **Split Sections:** Two-column layouts at 65/35 or 35/65 ratio. On mobile, they stack vertically with image on top (50dvh) and text below (50dvh). The `reverse` prop swaps column order.
 

@@ -24,7 +24,7 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow: hidden;
+  overflow: auto;
 }
 
 /* Selection */
@@ -38,6 +38,7 @@ body {
   scrollbar-width: thin;
   scrollbar-color: var(--bronze) transparent;
 }
+
 .snap-container::-webkit-scrollbar {
   width: 6px;
 }
@@ -49,12 +50,38 @@ body {
   border-radius: 3px;
 }
 
-/* Scroll snap container */
+/* Landing scroll: natural document scroll on mobile, snap on desktop. */
 .snap-container {
+  min-height: 100dvh;
+}
+
+/* Small viewport units keep mobile sections stable while browser chrome changes. */
+.snap-container > section {
+  min-height: 100svh;
+}
+
+@media (min-width: 768px) {
+  body {
+    overflow: hidden;
+  }
+
+  .snap-container {
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+
+  .snap-container > section {
+    min-height: 100dvh;
+  }
+}
+
+/* Admin uses normal document scrolling inside the locked body. */
+.admin-scroll {
   height: 100dvh;
   overflow-y: auto;
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  overscroll-behavior: contain;
 }
 
 /* Focus visible global */

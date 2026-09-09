@@ -9,5 +9,9 @@ export default async function AdminPage() {
 
   if (!admin) return <AdminLogin />;
 
-  return <AdminModeration />;
+  return (
+    <div className="admin-scroll">
+      <AdminModeration />
+    </div>
+  );
 }

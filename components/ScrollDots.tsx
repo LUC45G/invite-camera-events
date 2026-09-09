@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSnapContainer, smoothScrollTo } from "@/lib/scroll";
+import {
+  addScrollListener,
+  getScrollHost,
+  getScrollTop,
+  getViewportHeight,
+  smoothScrollTo,
+} from "@/lib/scroll";
 
 const LABELS = ["Inicio", "Historia", "Ceremonia", "Preguntas", "Confirmar"];
 
@@ -9,30 +15,31 @@ export function ScrollDots() {
   const [active, setActive] = useState(0);
 
   useEffect(() => {
-    const container = getSnapContainer();
-    if (!container) return;
+    const host = getScrollHost();
+    const layout =
+      document.querySelector(".snap-container") ?? document.body;
     const sections = Array.from(
-      container.querySelectorAll<HTMLElement>(":scope > section"),
+      layout.querySelectorAll<HTMLElement>(":scope > section"),
     );
 
     const onScroll = () => {
-      const top = container.scrollTop + container.clientHeight / 2;
+      const top = getScrollTop(host) + getViewportHeight(host) / 2;
       const idx = sections.findIndex(
         (s) => top >= s.offsetTop && top < s.offsetTop + s.offsetHeight,
       );
       setActive(idx === -1 ? 0 : idx);
     };
     onScroll();
-    container.addEventListener("scroll", onScroll, { passive: true });
-    return () => container.removeEventListener("scroll", onScroll);
+    return addScrollListener(host, onScroll);
   }, []);
 
   const goTo = (i: number) => {
-    const container = getSnapContainer();
-    if (!container) return;
-    const sections = container.querySelectorAll<HTMLElement>(":scope > section");
+    const host = getScrollHost();
+    const layout =
+      document.querySelector(".snap-container") ?? document.body;
+    const sections = layout.querySelectorAll<HTMLElement>(":scope > section");
     const target = sections[i];
-    if (target) smoothScrollTo(container, target.offsetTop);
+    if (target) smoothScrollTo(host, target.offsetTop);
   };
 
   return (

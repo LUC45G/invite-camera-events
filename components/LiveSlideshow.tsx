@@ -1,0 +1,117 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type Props = { slug: string; interval: number };
+
+type Photo = { id: string; cloudinary_url: string; thumbnail_url: string; created_at: string };
+
+export function LiveSlideshow({ slug, interval }: Props) {
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const [speed, setSpeed] = useState(interval);
+  const [connected, setConnected] = useState(true);
+
+  const photosRef = useRef<Photo[]>([]);
+  photosRef.current = photos;
+
+  // Carga inicial + refresh cuando llegan fotos nuevas
+  const load = useCallback(
+    async (after?: string) => {
+      const url = after
+        ? `/api/photos?slug=${slug}&after=${encodeURIComponent(after)}`
+        : `/api/photos?slug=${slug}`;
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = (await res.json()) as { photos?: Photo[] };
+      if (data.photos?.length) {
+        setPhotos((p) => [...p, ...data.photos!]);
+      }
+    },
+    [slug],
+  );
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // auto-avance
+  useEffect(() => {
+    if (paused || photos.length < 2) return;
+    const t = setInterval(
+      () => setIndex((i) => (i + 1) % photosRef.current.length),
+      speed * 1000,
+    );
+    return () => clearInterval(t);
+  }, [paused, speed]);
+
+  // SSE: fotos nuevas (append, sin resetear índice) + controles de admin
+  useEffect(() => {
+    const connect = () => {
+      const es = new EventSource("/api/photos/stream");
+
+      es.addEventListener("new_photos", () => {
+        const p = photosRef.current;
+        const after = p.length ? p[p.length - 1].created_at : undefined;
+        load(after);
+      });
+
+      es.addEventListener("slideshow", (ev) => {
+        const c = JSON.parse((ev as MessageEvent).data) as {
+          action: string;
+          value?: number;
+        };
+        const len = Math.max(photosRef.current.length, 1);
+        if (c.action === "pause") setPaused(true);
+        if (c.action === "resume") setPaused(false);
+        if (c.action === "next") setIndex((i) => (i + 1) % len);
+        if (c.action === "prev") setIndex((i) => (i - 1 + len) % len);
+        if (c.action === "speed" && c.value) setSpeed(c.value);
+      });
+
+      es.onerror = () => setConnected(false);
+      es.onopen = () => setConnected(true);
+      return es;
+    };
+
+    let es = connect();
+    return () => es.close();
+  }, [slug, load]);
+
+  const current = photos[index];
+
+  return (
+    <div className="fixed inset-0 bg-black text-white">
+      {current ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={current.cloudinary_url}
+          alt="Foto del evento"
+          className="h-full w-full object-contain"
+          key={current.id}
+        />
+      ) : (
+        <div className="flex h-full flex-col items-center justify-center gap-4">
+          <p className="font-sans text-2xl tracking-[0.3em] uppercase opacity-70">
+            Nuestra boda
+          </p>
+          <p className="font-sans text-lg opacity-40">
+            Esperando las primeras fotos…
+          </p>
+        </div>
+      )}
+
+      {!connected && (
+        <div className="absolute bottom-6 right-6 rounded-sm bg-white/10 px-3 py-1.5 font-sans text-sm">
+          Reconectando…
+        </div>
+      )}
+      {paused && photos.length > 0 && (
+        <div className="absolute bottom-6 left-6 rounded-sm bg-white/10 px-3 py-1.5 font-sans text-sm">
+          Pausado
+        </div>
+      )}
+    </div>
+  );
+}

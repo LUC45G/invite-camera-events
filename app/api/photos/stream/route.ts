@@ -1,10 +1,14 @@
-import { emitter, PHOTO_ADDED_EVENT } from "@/lib/sse";
+import {
+  emitter,
+  PHOTO_ADDED_EVENT,
+  SLIDESHOW_EVENT,
+} from "@/lib/sse";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-// SSE: notifica fotos nuevas a pantallas /live.
-// Eventos: connected, new_photos, heartbeat (15s).
+// SSE: notifica fotos nuevas y controles de slideshow a pantallas /live.
+// Eventos: connected, new_photos, slideshow, heartbeat (15s).
 export async function GET(request: Request) {
   const encoder = new TextEncoder();
 
@@ -28,6 +32,9 @@ export async function GET(request: Request) {
       const onPhoto = (photo: unknown) => send("new_photos", photo);
       emitter.on(PHOTO_ADDED_EVENT, onPhoto);
 
+      const onControl = (control: unknown) => send("slideshow", control);
+      emitter.on(SLIDESHOW_EVENT, onControl);
+
       const heartbeat = setInterval(
         () => send("heartbeat", { t: Date.now() }),
         15000,
@@ -36,6 +43,7 @@ export async function GET(request: Request) {
       request.signal.addEventListener("abort", () => {
         closed = true;
         emitter.off(PHOTO_ADDED_EVENT, onPhoto);
+        emitter.off(SLIDESHOW_EVENT, onControl);
         clearInterval(heartbeat);
         try {
           controller.close();

@@ -1,6 +1,7 @@
 import {
   emitter,
   PHOTO_ADDED_EVENT,
+  PHOTOS_CHANGED_EVENT,
   SLIDESHOW_EVENT,
 } from "@/lib/sse";
 
@@ -32,6 +33,10 @@ export async function GET(request: Request) {
       const onPhoto = (photo: unknown) => send("new_photos", photo);
       emitter.on(PHOTO_ADDED_EVENT, onPhoto);
 
+      const onPhotosChanged = (change: unknown) =>
+        send("photos_changed", change);
+      emitter.on(PHOTOS_CHANGED_EVENT, onPhotosChanged);
+
       const onControl = (control: unknown) => send("slideshow", control);
       emitter.on(SLIDESHOW_EVENT, onControl);
 
@@ -43,6 +48,7 @@ export async function GET(request: Request) {
       request.signal.addEventListener("abort", () => {
         closed = true;
         emitter.off(PHOTO_ADDED_EVENT, onPhoto);
+        emitter.off(PHOTOS_CHANGED_EVENT, onPhotosChanged);
         emitter.off(SLIDESHOW_EVENT, onControl);
         clearInterval(heartbeat);
         try {

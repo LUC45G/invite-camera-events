@@ -17,26 +17,27 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
 
   const photosRef = useRef<Photo[]>([]);
   photosRef.current = photos;
+  const indexRef = useRef(0);
+  indexRef.current = index;
 
-  // Carga inicial + refresh cuando llegan fotos nuevas
-  const load = useCallback(
-    async (after?: string) => {
-      const url = after
-        ? `/api/photos?slug=${slug}&after=${encodeURIComponent(after)}`
-        : `/api/photos?slug=${slug}`;
-      const res = await fetch(url);
-      if (!res.ok) return;
-      const data = (await res.json()) as { photos?: Photo[] };
-      if (data.photos?.length) {
-        setPhotos((p) => [...p, ...data.photos!]);
-      }
-    },
-    [slug],
-  );
+  // Refresca la lista completa de aprobadas y conserva la foto visible
+  // si sigue existiendo; si fue borrada/rechazada, vuelve al inicio.
+  const refreshPhotos = useCallback(async () => {
+    const res = await fetch(`/api/photos?slug=${slug}`);
+    if (!res.ok) return;
+    const data = (await res.json()) as { photos?: Photo[] };
+    const next = data.photos ?? [];
+    const currentId = photosRef.current[indexRef.current]?.id;
+    const keepIndex = currentId
+      ? next.findIndex((p) => p.id === currentId)
+      : -1;
+    setPhotos(next);
+    setIndex(keepIndex >= 0 ? keepIndex : 0);
+  }, [slug]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    refreshPhotos();
+  }, [refreshPhotos]);
 
   // auto-avance (loop cada `speed` segundos, con 2+ fotos)
   // `cycle` reinicia el timer en cada cambio (manual o automático)
@@ -56,9 +57,11 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
       const es = new EventSource("/api/photos/stream");
 
       es.addEventListener("new_photos", () => {
-        const p = photosRef.current;
-        const after = p.length ? p[p.length - 1].created_at : undefined;
-        load(after);
+        refreshPhotos();
+      });
+
+      es.addEventListener("photos_changed", () => {
+        refreshPhotos();
       });
 
       es.addEventListener("slideshow", (ev) => {
@@ -92,15 +95,14 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
       es.onopen = () => {
         setConnected(true);
         // al reconectar refrescar lo que pudo haber entrado durante la caída
-        const p = photosRef.current;
-        load(p.length ? p[p.length - 1].created_at : undefined);
+        refreshPhotos();
       };
       return es;
     };
 
     let es = connect();
     return () => es.close();
-  }, [slug, load]);
+  }, [slug, refreshPhotos]);
 
   const current = photos[index];
 

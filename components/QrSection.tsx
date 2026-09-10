@@ -6,6 +6,7 @@ type QrTable = { table_number: number; qr_token: string };
 
 export function QrSection({ slug }: { slug: string }) {
   const [tables, setTables] = useState<QrTable[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<QrTable | null>(null);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
@@ -119,42 +120,55 @@ p { font-size: 14px; word-break: break-all; }
 
   return (
     <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
-      <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-        QRs e invitaciones ({tables.length} mesas)
-      </h2>
-      <div className="mt-3 flex flex-col gap-2">
-        {tables.map((t) => (
-          <div
-            key={t.table_number}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-ink/10 px-3 py-2"
-          >
-            <div className="min-w-0">
-              <p className="font-sans text-base text-ink">Mesa {t.table_number}</p>
-              <p className="truncate font-mono text-xs text-ink/55">
-                {inviteUrl(t.qr_token)}
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  navigator.clipboard?.writeText(inviteUrl(t.qr_token));
-                }}
-                className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
-              >
-                Copiar link
-              </button>
-              <button
-                type="button"
-                onClick={() => openQr(t)}
-                className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory"
-              >
-                QR mesa
-              </button>
-            </div>
-          </div>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
+          QRs e invitaciones ({tables.length} mesas)
+        </h2>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls="qr-table-cards"
+          onClick={() => setExpanded((value) => !value)}
+          className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
+        >
+          {expanded ? "Ocultar" : "Mostrar"}
+        </button>
       </div>
+      {expanded && (
+        <div id="qr-table-cards" className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+          {tables.map((t) => (
+            <div
+              key={t.table_number}
+              className="flex min-w-0 flex-col gap-2 rounded-sm border border-ink/10 px-3 py-2"
+            >
+              <div className="min-w-0">
+                <p className="font-sans text-base text-ink">Mesa {t.table_number}</p>
+                <p className="truncate font-mono text-xs text-ink/55">
+                  {inviteUrl(t.qr_token)}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(inviteUrl(t.qr_token));
+                  }}
+                  className="flex-1 rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
+                >
+                  Copiar link
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openQr(t)}
+                  className="flex-1 rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory"
+                >
+                  QR mesa
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {selected && (
         <div

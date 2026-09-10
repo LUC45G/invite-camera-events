@@ -44,6 +44,31 @@ export async function touchSession(sessionId: string): Promise<void> {
   await sql`UPDATE upload_sessions SET last_seen_at = now() WHERE id = ${sessionId}`;
 }
 
+// Invitado (mesa/familia) asociado a un QR, para validar su RSVP.
+export async function findGuestByTable(
+  tableQrId: string,
+): Promise<{ rsvp_status: string } | null> {
+  const rows = await sql`
+    SELECT rsvp_status FROM guests WHERE table_qr_id = ${tableQrId} LIMIT 1`;
+  return (rows[0] as { rsvp_status: string }) ?? null;
+}
+
+// Número y nombre visible de una mesa (para mostrar a qué mesa está ligado el dispositivo).
+export async function getTableDisplay(
+  tableQrId: string,
+): Promise<{ table_number: number; guest_name: string | null } | null> {
+  const rows = await sql`
+    SELECT t.table_number, g.name AS guest_name
+    FROM table_qrs t
+    LEFT JOIN guests g ON g.table_qr_id = t.id
+    WHERE t.id = ${tableQrId}
+    LIMIT 1`;
+  return (rows[0] as {
+    table_number: number;
+    guest_name: string | null;
+  }) ?? null;
+}
+
 // Fotos subidas para una mesa (límite 24 por mesa/familia).
 export async function countPhotosForTable(tableQrId: string): Promise<number> {
   const rows =

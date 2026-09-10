@@ -5,7 +5,7 @@ import Link from "next/link";
 
 type Props = { slug: string; qr: string };
 
-type Phase = "starting" | "camera" | "preview" | "uploading" | "done";
+type Phase = "starting" | "confirm" | "locked" | "camera" | "preview" | "uploading" | "done";
 
 const SESSION_KEY = "upload_session_token";
 
@@ -21,30 +21,82 @@ export function CameraUploader({ slug, qr }: Props) {
   const [remaining, setRemaining] = useState<number | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
   const [nsfwScore, setNsfwScore] = useState<number | null>(null);
+  const [tableNumber, setTableNumber] = useState<number | null>(null);
+  const [tableName, setTableName] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
-  // reanudar/crear sesión
+  async function postSession(body: Record<string, unknown>) {
+    const res = await fetch("/api/upload/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { res, data } as {
+      res: Response;
+      data: {
+        error?: string;
+        rsvpRequired?: boolean;
+        confirm?: boolean;
+        sessionToken?: string;
+        tableNumber?: number;
+        tableName?: string;
+        lockedTable?: { tableNumber: number | null; tableName: string };
+      };
+    };
+  }
+
+  async function startLinkedSession(token: string) {
+    const { res, data } = await postSession({ qr, sessionToken: token });
+    if (!res.ok) {
+      if (data.rsvpRequired) {
+        redirectToInvitation();
+        return;
+      }
+      if (res.status === 409 && data.lockedTable) {
+        setTableNumber(data.lockedTable.tableNumber);
+        setTableName(data.lockedTable.tableName);
+        setPhase("locked");
+        return;
+      }
+      setError(data.error ?? "QR inválido");
+      setPhase("done");
+      return;
+    }
+    localStorage.setItem(`${SESSION_KEY}:${slug}`, data.sessionToken!);
+    setSessionToken(data.sessionToken!);
+    setTableNumber(data.tableNumber ?? null);
+    setTableName(data.tableName ?? null);
+    await startCamera();
+  }
+
+  // Mesa sin RSVP aceptado: vuelve a la invitación con aviso, sin cámara.
+  function redirectToInvitation() {
+    window.location.href = `/${slug}?token=${qr}&notice=camera-blocked`;
+  }
+
+  // reanudar sesión ligada, o pedir confirmación de vinculación si es nueva
   useEffect(() => {
     (async () => {
       const stored = localStorage.getItem(`${SESSION_KEY}:${slug}`);
       try {
-        const res = await fetch("/api/upload/session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(
-            stored ? { qr, sessionToken: stored } : { qr },
-          ),
-        });
+        if (stored) {
+          await startLinkedSession(stored);
+          return;
+        }
+        const { res, data } = await postSession({ qr });
         if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
+          if (data.rsvpRequired) {
+            redirectToInvitation();
+            return;
+          }
           setError(data.error ?? "QR inválido");
           setPhase("done");
           return;
         }
-        const data = await res.json();
-        localStorage.setItem(`${SESSION_KEY}:${slug}`, data.sessionToken);
-        setSessionToken(data.sessionToken);
-        // si la cámara está disponible arrancamos
-        await startCamera();
+        setTableNumber(data.tableNumber ?? null);
+        setTableName(data.tableName ?? null);
+        setPhase("confirm");
       } catch {
         setError("No hay conexión. Probá de nuevo.");
         setPhase("done");
@@ -56,6 +108,33 @@ export function CameraUploader({ slug, qr }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qr, slug]);
+
+  // El usuario acepta vincular este dispositivo a la mesa.
+  async function confirmLink() {
+    setConfirming(true);
+    try {
+      const { res, data } = await postSession({ qr, confirmed: true });
+      if (!res.ok) {
+        if (data.rsvpRequired) {
+          redirectToInvitation();
+          return;
+        }
+        setError(data.error ?? "No se pudo vincular");
+        setPhase("done");
+        return;
+      }
+      localStorage.setItem(`${SESSION_KEY}:${slug}`, data.sessionToken!);
+      setSessionToken(data.sessionToken!);
+      setTableNumber(data.tableNumber ?? null);
+      setTableName(data.tableName ?? null);
+      await startCamera();
+    } catch {
+      setError("No hay conexión. Probá de nuevo.");
+      setPhase("done");
+    } finally {
+      setConfirming(false);
+    }
+  }
 
   async function startCamera() {
     try {
@@ -209,16 +288,70 @@ export function CameraUploader({ slug, qr }: Props) {
         >
           ← Invitación
         </Link>
-        {remaining !== null && (
+        {tableNumber !== null ? (
           <span className="font-sans text-xs tracking-[0.2em] text-ink/55 uppercase">
-            {remaining} restantes
+            Mesa {tableNumber}
+            {remaining !== null ? ` · ${remaining} restantes` : ""}
           </span>
+        ) : (
+          remaining !== null && (
+            <span className="font-sans text-xs tracking-[0.2em] text-ink/55 uppercase">
+              {remaining} restantes
+            </span>
+          )
         )}
       </header>
 
       <main className="flex flex-1 flex-col items-center justify-center gap-4 px-6 pb-10">
         {phase === "starting" && (
           <p className="font-sans text-base text-ink/55">Abriendo cámara…</p>
+        )}
+
+        {phase === "confirm" && (
+          <div className="flex max-w-[400px] flex-col items-center gap-4 text-center">
+            <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
+              ¿Vincularse a la {tableName ?? `mesa ${tableNumber ?? ""}`}?
+            </h1>
+            <p className="text-base text-ink/70 sm:text-lg">
+              Este dispositivo va a quedar ligado a esta mesa durante toda la
+              fiesta para subir sus fotos.
+            </p>
+            <div className="flex gap-3">
+              <Link
+                href={`/${slug}`}
+                className="rounded-sm border border-ink/20 bg-ivory px-6 py-3 text-lg text-ink transition-colors hover:border-ink/40"
+              >
+                No
+              </Link>
+              <button
+                type="button"
+                disabled={confirming}
+                aria-busy={confirming}
+                onClick={confirmLink}
+                className="rounded-sm bg-bronze px-8 py-3 text-lg text-ivory transition-colors hover:bg-bronze/90 disabled:opacity-60"
+              >
+                {confirming ? "Vinculando…" : "Sí, vincular"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === "locked" && (
+          <div className="flex max-w-[400px] flex-col items-center gap-3 text-center">
+            <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
+              Dispositivo ya vinculado
+            </h1>
+            <p className="text-base text-ink/70 sm:text-lg">
+              Este dispositivo está ligado a la {tableName ?? `mesa ${tableNumber ?? ""}`}.
+              Pedí el QR de tu mesa para subir fotos.
+            </p>
+            <Link
+              href={`/${slug}`}
+              className="mt-2 rounded-sm bg-bronze px-8 py-3 text-lg text-ivory transition-colors hover:bg-bronze/90"
+            >
+              Volver a la invitación
+            </Link>
+          </div>
         )}
 
         {/* Video en vivo */}

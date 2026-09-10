@@ -166,27 +166,43 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
   const [editingTable, setEditingTable] = useState<number | null>(null);
   const [draftName, setDraftName] = useState("");
   const [savingName, setSavingName] = useState(false);
+  const [savingStatus, setSavingStatus] = useState<number | null>(null);
+
+  async function saveGuest(table_number: number, patch: { name?: string; status?: string }) {
+    const res = await fetch("/api/admin/guests", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table_number, ...patch }),
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(payload.error ?? "No se pudo guardar");
+    await refresh();
+  }
 
   async function saveName(table_number: number) {
     const name = draftName.trim();
     if (!name) return;
     setSavingName(true);
     try {
-      const res = await fetch("/api/admin/guests", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ table_number, name }),
-      });
-      const payload = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(payload.error ?? "No se pudo guardar el nombre");
+      await saveGuest(table_number, { name });
       setEditingTable(null);
-      await refresh();
       // avisa al panel QR para que recargue nombres/tokens
       window.dispatchEvent(new CustomEvent("qr:tables-changed"));
     } catch {
       // el error queda visible vía el banner de la lista al refrescar
     } finally {
       setSavingName(false);
+    }
+  }
+
+  async function saveStatus(table_number: number, status: string) {
+    setSavingStatus(table_number);
+    try {
+      await saveGuest(table_number, { status });
+    } catch {
+      // el error queda visible vía el banner de la lista al refrescar
+    } finally {
+      setSavingStatus((current) => (current === table_number ? null : current));
     }
   }
 
@@ -294,7 +310,21 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
                     </button>
                   )}
                 </td>
-                <td className="px-3 py-2">{rsvpStatusLabel(row.rsvp_status)}</td>
+                <td className="px-3 py-2">
+                  <select
+                    value={row.rsvp_status}
+                    disabled={savingStatus === row.table_number}
+                    onChange={(e) =>
+                      row.table_number !== null && void saveStatus(row.table_number, e.target.value)
+                    }
+                    aria-label={`Estado de mesa ${row.table_number ?? ""}`}
+                    className="rounded-sm border border-ink/20 bg-ivory px-1.5 py-0.5 text-sm text-ink disabled:opacity-60"
+                  >
+                    <option value="pending">Pendiente</option>
+                    <option value="accepted">Confirmada</option>
+                    <option value="declined">Rechazada</option>
+                  </select>
+                </td>
                 <td className="px-3 py-2">{row.rsvp_guests}</td>
                 <td className="px-3 py-2">{row.rsvp_dietary?.trim() || "—"}</td>
               </tr>

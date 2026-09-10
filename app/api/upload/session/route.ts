@@ -2,15 +2,18 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import {
   createSession,
+  findGuestByTable,
   findSession,
   findTableQr,
   getEventById,
+  getTableDisplay,
   touchSession,
 } from "@/lib/upload-db";
 
 const sessionSchema = z.object({
   qr: z.string().min(10).max(64),
   sessionToken: z.string().max(64).optional(),
+  confirmed: z.boolean().optional(),
 });
 
 export async function POST(request: Request) {
@@ -26,31 +29,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const { qr, sessionToken } = parsed.data;
+  const { qr, sessionToken, confirmed } = parsed.data;
 
-  // Reanudar sesión existente del dispositivo
-  if (sessionToken) {
-    const session = await findSession(sessionToken);
-    if (session) {
-      const event = await getEventById(session.event_id);
-      if (event) {
-        if (!event.upload_open) {
-          return NextResponse.json(
-            { error: "La carga de fotos está cerrada" },
-            { status: 423 },
-          );
-        }
-        await touchSession(session.id);
-        return NextResponse.json({
-          sessionToken: session.session_token,
-          tableQrId: session.table_qr_id,
-          photoCount: session.photo_count,
-        });
-      }
-    }
-    // Token de sesión inválido/expirado: arrancar de nuevo con el QR
-  }
-
+  // La mesa escaneada se valida primero: todo lo demás depende de ella.
   const table = await findTableQr(qr);
   if (!table) {
     return NextResponse.json({ error: "QR inválido" }, { status: 403 });
@@ -67,10 +48,62 @@ export async function POST(request: Request) {
     );
   }
 
+  // Solo las mesas que confirmaron asistencia pueden usar la cámara.
+  // Pendientes o rechazadas vuelven a la invitación con aviso.
+  const guests = await findGuestByTable(table.id);
+  if (!guests || guests.rsvp_status !== "accepted") {
+    return NextResponse.json(
+      { error: "Mesa sin confirmación", rsvpRequired: true },
+      { status: 403 },
+    );
+  }
+
+  const display = await getTableDisplay(table.id);
+  const tableInfo = {
+    tableNumber: display?.table_number ?? table.table_number,
+    tableName: display?.guest_name ?? `Mesa ${table.table_number}`,
+  };
+
+  // Reanudar sesión existente del dispositivo, solo si es de esta mesa.
+  // El dispositivo queda ligado a la primera mesa que escaneó.
+  if (sessionToken) {
+    const session = await findSession(sessionToken);
+    if (session) {
+      if (session.table_qr_id !== table.id) {
+        const locked = await getTableDisplay(session.table_qr_id);
+        return NextResponse.json(
+          {
+            error: "Este dispositivo ya está vinculado a otra mesa",
+            lockedTable: {
+              tableNumber: locked?.table_number ?? null,
+              tableName: locked?.guest_name ?? "tu mesa",
+            },
+          },
+          { status: 409 },
+        );
+      }
+      await touchSession(session.id);
+      return NextResponse.json({
+        sessionToken: session.session_token,
+        tableQrId: session.table_qr_id,
+        photoCount: session.photo_count,
+        ...tableInfo,
+      });
+    }
+    // Token de sesión inválido/expirado: sigue el flujo de vinculación
+  }
+
+  // Vinculación explícita: sin confirmación solo se informa la mesa,
+  // sin crear sesión. Vincular restringe el dispositivo, así que se pide Sí/No.
+  if (!confirmed) {
+    return NextResponse.json({ confirm: true, ...tableInfo });
+  }
+
   const session = await createSession(event.id, table.id);
   return NextResponse.json({
     sessionToken: session.session_token,
     tableQrId: session.table_qr_id,
     photoCount: 0,
+    ...tableInfo,
   });
 }

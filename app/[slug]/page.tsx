@@ -22,11 +22,20 @@ export default async function Page({ params, searchParams }: Props) {
   const hasToken = token.length > 0;
   const tokenValid = hasToken && (await isTokenValid(token));
   const existing = tokenValid ? await findRsvp(token) : undefined;
+  const cameraBlocked = query.notice === "camera-blocked";
 
   return (
     <div className="snap-container">
       {/* 1. Hero */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6 text-center">
+        {cameraBlocked && (
+          <p
+            role="alert"
+            className="mb-6 max-w-md rounded-sm border border-bronze bg-bronze/10 px-4 py-3 font-sans text-base text-ink"
+          >
+            Para usar la cámara de tu mesa, primero confirmá tu asistencia acá abajo.
+          </p>
+        )}
         <Stagger delay={0}>
           <p className="font-sans text-sm tracking-[0.3em] text-bronze uppercase">
             Nos casamos

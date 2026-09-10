@@ -1,8 +1,18 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { CopyButton } from "@/components/CopyButton";
 
-type QrTable = { table_number: number; qr_token: string };
+type QrTable = { table_number: number; qr_token: string; guest_name: string | null };
+
+// Plantilla del mensaje para WhatsApp. Variables: {nombre}, {mesa}, {link}.
+// Editá el texto acá y listo — el link con token se genera solo.
+const MESSAGE_TEMPLATE = `Hola {nombre}! 💒
+
+Daniela & Miguel se casan y queremos que seas parte.
+Confirmá tu asistencia acá: {link}
+
+¡Te esperamos!`;
 
 export function QrSection({ slug }: { slug: string }) {
   const [tables, setTables] = useState<QrTable[] | null>(null);
@@ -11,17 +21,65 @@ export function QrSection({ slug }: { slug: string }) {
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [mutating, setMutating] = useState(false);
+  const [listError, setListError] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const base = typeof window !== "undefined" ? window.location.origin : "";
   const qrUrl = (token: string) => `${base}/${slug}/upload?qr=${token}`;
   const inviteUrl = (token: string) => `${base}/${slug}?token=${token}`;
 
+  async function loadTables() {
+    try {
+      const r = await fetch("/api/admin/tables");
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "No se pudo cargar mesas");
+      setTables(d.tables ?? []);
+      setListError(null);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "No se pudo cargar mesas");
+      setTables([]);
+    }
+  }
+
   useEffect(() => {
-    fetch("/api/admin/tables")
-      .then((r) => r.json())
-      .then((d: { tables?: QrTable[] }) => setTables(d.tables ?? []))
-      .catch(() => setTables([]));
+    void loadTables();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function addTable() {
+    setMutating(true);
+    setListError(null);
+    try {
+      const r = await fetch("/api/admin/tables", { method: "POST" });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error ?? "No se pudo agregar la mesa");
+      await loadTables();
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "No se pudo agregar la mesa");
+    } finally {
+      setMutating(false);
+    }
+  }
+
+  async function removeTable(table_number: number) {
+    if (!confirm(`¿Eliminar la mesa ${table_number}?`)) return;
+    setMutating(true);
+    setListError(null);
+    try {
+      const r = await fetch("/api/admin/tables", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table_number }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error ?? "No se pudo eliminar la mesa");
+      await loadTables();
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "No se pudo eliminar la mesa");
+    } finally {
+      setMutating(false);
+    }
+  }
 
   useEffect(() => {
     if (!selected) return;
@@ -70,6 +128,12 @@ export function QrSection({ slug }: { slug: string }) {
 
   function openQr(table: QrTable) {
     setSelected(table);
+  }
+
+  function buildMessage(table: QrTable) {
+    return MESSAGE_TEMPLATE.replaceAll("{nombre}", table.guest_name ?? `Mesa ${table.table_number}`)
+      .replaceAll("{mesa}", String(table.table_number))
+      .replaceAll("{link}", inviteUrl(table.qr_token));
   }
 
   function closeQr() {
@@ -124,16 +188,31 @@ p { font-size: 14px; word-break: break-all; }
         <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
           QRs e invitaciones ({tables.length} mesas)
         </h2>
-        <button
-          type="button"
-          aria-expanded={expanded}
-          aria-controls="qr-table-cards"
-          onClick={() => setExpanded((value) => !value)}
-          className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
-        >
-          {expanded ? "Ocultar" : "Mostrar"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={addTable}
+            disabled={mutating}
+            className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory disabled:opacity-60"
+          >
+            {mutating ? "…" : "＋ Mesa"}
+          </button>
+          <button
+            type="button"
+            aria-expanded={expanded}
+            aria-controls="qr-table-cards"
+            onClick={() => setExpanded((value) => !value)}
+            className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
+          >
+            {expanded ? "Ocultar" : "Mostrar"}
+          </button>
+        </div>
       </div>
+      {listError && (
+        <p role="alert" className="mt-2 font-sans text-sm text-ink/80">
+          {listError}
+        </p>
+      )}
       {expanded && (
         <div id="qr-table-cards" className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {tables.map((t) => (
@@ -142,21 +221,35 @@ p { font-size: 14px; word-break: break-all; }
               className="flex min-w-0 flex-col gap-2 rounded-sm border border-ink/10 px-3 py-2"
             >
               <div className="min-w-0">
-                <p className="font-sans text-base text-ink">Mesa {t.table_number}</p>
+                <p className="font-sans text-base text-ink">
+                  Mesa {t.table_number}
+                  <button
+                    type="button"
+                    onClick={() => removeTable(t.table_number)}
+                    disabled={mutating}
+                    aria-label={`Eliminar mesa ${t.table_number}`}
+                    className="ml-2 text-sm text-ink/40 hover:text-ink disabled:opacity-60"
+                  >
+                    ×
+                  </button>
+                </p>
                 <p className="truncate font-mono text-xs text-ink/55">
                   {inviteUrl(t.qr_token)}
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard?.writeText(inviteUrl(t.qr_token));
-                  }}
+                <CopyButton
+                  text={inviteUrl(t.qr_token)}
                   className="flex-1 rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
                 >
                   Copiar link
-                </button>
+                </CopyButton>
+                <CopyButton
+                  text={buildMessage(t)}
+                  className="flex-1 rounded-sm border border-bronze px-3 py-1.5 text-sm text-bronze"
+                >
+                  Copiar mensaje
+                </CopyButton>
                 <button
                   type="button"
                   onClick={() => openQr(t)}

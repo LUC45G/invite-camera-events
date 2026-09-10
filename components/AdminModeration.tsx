@@ -25,6 +25,9 @@ const SLUG = "nuestra-boda";
 export function AdminModeration() {
   const [notification, setNotification] = useState<string | null>(null);
   const [speedDraft, setSpeedDraft] = useState<number | null>(null);
+  const [busyPhoto, setBusyPhoto] = useState<string | null>(null);
+  const [busyControl, setBusyControl] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState(false);
 
   const fetchPhotos = useCallback(async (): Promise<{
     photos: Photo[];
@@ -64,37 +67,72 @@ export function AdminModeration() {
       if (action === "delete" && !confirm("¿Borrar esta foto para siempre?")) {
         return;
       }
-      const res = await fetch("/api/admin/photos", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, action }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setNotification(d.error ?? "Error");
-        return;
+      const key = `${id}:${action}`;
+      setBusyPhoto(key);
+      try {
+        const res = await fetch("/api/admin/photos", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id, action }),
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setNotification(d.error ?? "Error");
+          return;
+        }
+        setNotification(
+          action === "delete"
+            ? "Foto borrada"
+            : `Foto ${action === "approve" ? "aprobada" : "rechazada"}`,
+        );
+        await refreshPhotos();
+      } finally {
+        setBusyPhoto((current) => (current === key ? null : current));
       }
-      setNotification(
-        action === "delete"
-          ? "Foto borrada"
-          : `Foto ${action === "approve" ? "aprobada" : "rechazada"}`,
-      );
-      await refreshPhotos();
     },
     [refreshPhotos],
   );
 
   const control = useCallback(
     async (action: "pause" | "resume" | "next" | "prev" | "speed", value?: number) => {
-      const res = await fetch("/api/admin/slideshow", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, value }),
-      });
-      if (res.ok) setNotification(`Slideshow: ${action}${value ? ` ${value}s` : ""}`);
+      setBusyControl(action);
+      try {
+        const res = await fetch("/api/admin/slideshow", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action, value }),
+        });
+        if (res.ok) setNotification(`Slideshow: ${action}${value ? ` ${value}s` : ""}`);
+        else setNotification("Error al controlar la proyección");
+      } finally {
+        setBusyControl((current) => (current === action ? null : current));
+      }
     },
     [],
   );
+
+  async function downloadZip() {
+    setDownloading(true);
+    setNotification(null);
+    try {
+      const res = await fetch(`/api/admin/export?slug=${SLUG}`);
+      if (!res.ok) throw new Error("No se pudo generar el ZIP");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${SLUG}-fotos.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setNotification("ZIP descargado");
+    } catch {
+      setNotification("Error al descargar el ZIP");
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   const pending = photos.filter((p) => p.status === "pending");
   const approved = photos.filter((p) => p.status === "approved");
@@ -111,20 +149,23 @@ export function AdminModeration() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href={`/api/admin/export?slug=${SLUG}`}
-            className="inline-block rounded-sm bg-bronze px-4 py-1.5 font-sans text-sm text-ivory transition-colors hover:bg-bronze/90"
+          <button
+            type="button"
+            onClick={downloadZip}
+            disabled={downloading}
+            className="rounded-sm bg-bronze px-4 py-1.5 font-sans text-sm text-ivory transition-colors hover:bg-bronze/90 disabled:opacity-60"
           >
-            Descargar ZIP
-          </a>
+            {downloading ? "Descargando…" : "Descargar ZIP"}
+          </button>
           <button
             type="button"
             onClick={() => {
               void refreshPhotos();
             }}
-            className="rounded-sm border border-ink/20 bg-ivory px-4 py-1.5 font-sans text-sm text-ink"
+            disabled={photosLoading}
+            className="rounded-sm border border-ink/20 bg-ivory px-4 py-1.5 font-sans text-sm text-ink disabled:opacity-60"
           >
-            Actualizar
+            {photosLoading ? "Actualizando…" : "Actualizar"}
           </button>
           <button
             type="button"
@@ -165,30 +206,34 @@ export function AdminModeration() {
             <button
               type="button"
               onClick={() => control("pause")}
-              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base"
+              disabled={busyControl !== null}
+              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base disabled:opacity-60"
             >
-              Pausar
+              {busyControl === "pause" ? "Pausando…" : "Pausar"}
             </button>
             <button
               type="button"
               onClick={() => control("resume")}
-              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base"
+              disabled={busyControl !== null}
+              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base disabled:opacity-60"
             >
-              Reanudar
+              {busyControl === "resume" ? "Reanudando…" : "Reanudar"}
             </button>
             <button
               type="button"
               onClick={() => control("prev")}
-              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base"
+              disabled={busyControl !== null}
+              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base disabled:opacity-60"
             >
-              ← Anterior
+              {busyControl === "prev" ? "…" : "← Anterior"}
             </button>
             <button
               type="button"
               onClick={() => control("next")}
-              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base"
+              disabled={busyControl !== null}
+              className="rounded-sm border border-ink/20 bg-ivory px-4 py-2 text-base disabled:opacity-60"
             >
-              Siguiente →
+              {busyControl === "next" ? "…" : "Siguiente →"}
             </button>
             <div className="flex items-center gap-2">
               <input
@@ -202,11 +247,11 @@ export function AdminModeration() {
               <span className="text-ink/55">segundos</span>
               <button
                 type="button"
-                disabled={speed === null}
+                disabled={speed === null || busyControl !== null}
                 onClick={() => speed !== null && control("speed", speed)}
                 className="rounded-sm bg-bronze px-3 py-2 text-base text-ivory disabled:opacity-60"
               >
-                Aplicar
+                {busyControl === "speed" ? "Aplicando…" : "Aplicar"}
               </button>
             </div>
           </div>
@@ -241,23 +286,26 @@ export function AdminModeration() {
                     <button
                       type="button"
                       onClick={() => act(p.id, "approve")}
-                      className="flex-1 rounded-sm bg-bronze py-1.5 text-sm text-ivory"
+                      disabled={busyPhoto !== null}
+                      className="flex-1 rounded-sm bg-bronze py-1.5 text-sm text-ivory disabled:opacity-60"
                     >
-                      Aprobar
+                      {busyPhoto === `${p.id}:approve` ? "Aprobando…" : "Aprobar"}
                     </button>
                     <button
                       type="button"
                       onClick={() => act(p.id, "reject")}
-                      className="flex-1 rounded-sm border border-ink/20 py-1.5 text-sm text-ink"
+                      disabled={busyPhoto !== null}
+                      className="flex-1 rounded-sm border border-ink/20 py-1.5 text-sm text-ink disabled:opacity-60"
                     >
-                      Rechazar
+                      {busyPhoto === `${p.id}:reject` ? "Rechazando…" : "Rechazar"}
                     </button>
                     <button
                       type="button"
                       onClick={() => act(p.id, "delete")}
-                      className="flex-1 rounded-sm bg-ink/80 py-1.5 text-sm text-ivory"
+                      disabled={busyPhoto !== null}
+                      className="flex-1 rounded-sm bg-ink/80 py-1.5 text-sm text-ivory disabled:opacity-60"
                     >
-                      Borrar
+                      {busyPhoto === `${p.id}:delete` ? "Borrando…" : "Borrar"}
                     </button>
                   </div>
                 </div>
@@ -290,9 +338,10 @@ export function AdminModeration() {
                     <button
                       type="button"
                       onClick={() => act(p.id, "delete")}
-                      className="px-2 py-1 text-sm text-ink/60 hover:text-ink"
+                      disabled={busyPhoto !== null}
+                      className="px-2 py-1 text-sm text-ink/60 hover:text-ink disabled:opacity-60"
                     >
-                      Borrar
+                      {busyPhoto === `${p.id}:delete` ? "Borrando…" : "Borrar"}
                     </button>
                   </div>
                 </div>
@@ -323,16 +372,18 @@ export function AdminModeration() {
                     <button
                       type="button"
                       onClick={() => act(p.id, "approve")}
-                      className="flex-1 rounded-sm bg-bronze/90 py-1 text-sm text-ivory"
+                      disabled={busyPhoto !== null}
+                      className="flex-1 rounded-sm bg-bronze/90 py-1 text-sm text-ivory disabled:opacity-60"
                     >
-                      Aprobar
+                      {busyPhoto === `${p.id}:approve` ? "Aprobando…" : "Aprobar"}
                     </button>
                     <button
                       type="button"
                       onClick={() => act(p.id, "delete")}
-                      className="flex-1 rounded-sm bg-ink/80 py-1 text-sm text-ivory"
+                      disabled={busyPhoto !== null}
+                      className="flex-1 rounded-sm bg-ink/80 py-1 text-sm text-ivory disabled:opacity-60"
                     >
-                      Borrar
+                      {busyPhoto === `${p.id}:delete` ? "Borrando…" : "Borrar"}
                     </button>
                   </div>
                 </div>

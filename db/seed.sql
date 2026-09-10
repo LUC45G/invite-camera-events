@@ -11,12 +11,12 @@ INSERT INTO events (name, slug, reveal_at)
 VALUES (:'event_name', :'event_slug', :'reveal_at'::timestamptz)
 ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name, reveal_at = EXCLUDED.reveal_at;
 
--- Una mesa/familia por número: genera qr_token de 64 chars (hex).
+-- Una mesa/familia por número: token corto de 12 chars (prolijo en WhatsApp).
 -- El MISMO token se usa como token de invitación (token_invitacion = token_qr).
 INSERT INTO table_qrs (event_id, table_number, qr_token)
 SELECT e.id,
        g,
-       encode(gen_random_bytes(32), 'hex')
+       encode(gen_random_bytes(6), 'hex')
 FROM events e,
      generate_series(1, :num_tables) AS g
 WHERE e.slug = :'event_slug'

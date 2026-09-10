@@ -175,9 +175,10 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
           onClick={() => {
             void refresh();
           }}
-          className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
+          disabled={loading}
+          className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink disabled:opacity-60"
         >
-          Actualizar
+          {loading ? "Actualizando…" : "Actualizar"}
         </button>
       </div>
 

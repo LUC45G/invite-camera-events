@@ -9,7 +9,7 @@ import { config } from "dotenv";
 const EVENT_NAME = "Boda Sofía & Mateo";
 const EVENT_SLUG = "nuestra-boda";
 const REVEAL_AT = "2026-09-12 23:59:00-03";
-const NUM_TABLES = 10;
+const NUM_TABLES = 5;
 // ==================================================
 
 const yes = process.argv.includes("--yes");

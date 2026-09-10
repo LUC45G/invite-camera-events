@@ -90,6 +90,11 @@ body {
   outline-offset: 2px;
 }
 
+/* Todos los botones muestran cursor pointer */
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 /* Scroll reveal */
 .reveal {
   opacity: 0;

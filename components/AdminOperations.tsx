@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 
 type AdminRsvpRow = {
   table_number: number | null;
@@ -54,8 +55,7 @@ type StorageData = {
 const WIPE_CONFIRMATION = "BORRAR TODO";
 
 function formatBytes(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return "—";
-  if (value <= 0) return "0 B";
+  if (value === null || !Number.isFinite(value) || value <= 0) return value === 0 ? "0 B" : "—";
   const units = ["B", "KB", "MB", "GB", "TB"];
   const index = Math.min(
     units.length - 1,
@@ -77,7 +77,7 @@ function metricPercent(metric: StorageMetric): number | null {
   if (metric.usage === null || metric.limit === null || metric.limit <= 0) {
     return null;
   }
-  return Math.min(100, Math.round((metric.usage / metric.limit) * 100));
+  return Math.min(100, Math.max(0, Math.round((metric.usage / metric.limit) * 100)));
 }
 
 function toLocalInput(value: string | null): string {
@@ -163,13 +163,37 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
   const { data, error, loading, refresh } = useAdminRequest(fetchRsvp);
   const rows = data?.guests ?? [];
   const summary = data?.summary ?? null;
+  const [editingTable, setEditingTable] = useState<number | null>(null);
+  const [draftName, setDraftName] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  async function saveName(table_number: number) {
+    const name = draftName.trim();
+    if (!name) return;
+    setSavingName(true);
+    try {
+      const res = await fetch("/api/admin/guests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table_number, name }),
+      });
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(payload.error ?? "No se pudo guardar el nombre");
+      setEditingTable(null);
+      await refresh();
+    } catch {
+      // el error queda visible vía el banner de la lista al refrescar
+    } finally {
+      setSavingName(false);
+    }
+  }
 
   return (
-    <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-          Invitados y RSVP
-        </h2>
+    <CollapsibleSection
+      title="Invitados"
+      count={summary?.total}
+      defaultOpen={false}
+      actions={
         <button
           type="button"
           onClick={() => {
@@ -180,10 +204,10 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
         >
           {loading ? "Actualizando…" : "Actualizar"}
         </button>
-      </div>
-
+      }
+    >
       {error && (
-        <p role="alert" className="mt-3 font-sans text-sm text-ink/80">
+        <p role="alert" className="mb-2 font-sans text-sm text-ink/80">
           {error}
         </p>
       )}
@@ -230,7 +254,44 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
             {rows.map((row) => (
               <tr key={`${row.table_number ?? "sin-mesa"}-${row.name ?? "sin-nombre"}`} className="border-t border-ink/10">
                 <td className="px-3 py-2">{row.table_number ?? "—"}</td>
-                <td className="px-3 py-2">{row.name ?? "—"}</td>
+                <td className="px-3 py-2">
+                  {editingTable === row.table_number ? (
+                    <span className="flex items-center gap-1">
+                      <input
+                        autoFocus
+                        value={draftName}
+                        onChange={(e) => setDraftName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && row.table_number !== null) void saveName(row.table_number);
+                          if (e.key === "Escape") setEditingTable(null);
+                        }}
+                        className="w-32 rounded-sm border border-bronze bg-ivory px-1.5 py-0.5 text-sm text-ink"
+                      />
+                      <button
+                        type="button"
+                        disabled={savingName || !draftName.trim()}
+                        onClick={() => row.table_number !== null && void saveName(row.table_number)}
+                        className="text-sm text-bronze disabled:opacity-60"
+                        aria-label="Guardar nombre"
+                      >
+                        ✓
+                      </button>
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      title="Editar nombre"
+                      onClick={() => {
+                        setEditingTable(row.table_number);
+                        setDraftName(row.name ?? "");
+                      }}
+                      className="group text-left"
+                    >
+                      {row.name ?? "—"}{" "}
+                      <span className="text-ink/30 group-hover:text-bronze">✏️</span>
+                    </button>
+                  )}
+                </td>
                 <td className="px-3 py-2">{rsvpStatusLabel(row.rsvp_status)}</td>
                 <td className="px-3 py-2">{row.rsvp_guests}</td>
                 <td className="px-3 py-2">{row.rsvp_dietary?.trim() || "—"}</td>
@@ -246,7 +307,7 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </CollapsibleSection>
   );
 }
 
@@ -314,12 +375,9 @@ export function AdminEventSettings({ slug }: { slug: string }) {
   }
 
   return (
-    <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
-      <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-        Evento y reveal
-      </h2>
+    <CollapsibleSection title="Evento y Reveal" defaultOpen={false}>
       {data?.event && (
-        <p className="mt-1 font-sans text-sm text-ink/55">
+        <p className="mb-2 font-sans text-sm text-ink/55">
           {data.event.name} · /{data.event.slug}
         </p>
       )}
@@ -385,7 +443,7 @@ export function AdminEventSettings({ slug }: { slug: string }) {
           </button>
         </div>
       </form>
-    </section>
+    </CollapsibleSection>
   );
 }
 
@@ -402,24 +460,24 @@ export function AdminStoragePanel({ slug }: { slug: string }) {
   const storagePercent = data ? metricPercent(data.cloud?.storage ?? { usage: null, limit: null }) : null;
 
   return (
-    <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-          Almacenamiento
-        </h2>
+    <CollapsibleSection
+      title="Almacenamiento"
+      defaultOpen={false}
+      actions={
         <button
           type="button"
           onClick={() => {
             void refresh();
           }}
-          className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
+          disabled={loading}
+          className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink disabled:opacity-60"
         >
-          Actualizar
+          {loading ? "Actualizando…" : "Actualizar"}
         </button>
-      </div>
-
+      }
+    >
       {error && (
-        <p role="alert" className="mt-3 font-sans text-sm text-ink/80">
+        <p role="alert" className="mb-2 font-sans text-sm text-ink/80">
           {error}
         </p>
       )}
@@ -469,7 +527,7 @@ export function AdminStoragePanel({ slug }: { slug: string }) {
       {loading && !data && (
         <p className="mt-3 font-sans text-sm text-ink/55">Cargando almacenamiento…</p>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }
 
@@ -500,10 +558,7 @@ export function AdminDangerPanel({ slug }: { slug: string }) {
   }
 
   return (
-    <section className="mb-8 rounded-sm border border-ink/20 bg-ivory p-4">
-      <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-        Zona peligrosa
-      </h2>
+    <CollapsibleSection title="Zona peligrosa" defaultOpen={false}>
       {!done ? (
         <>
           <p className="mt-2 font-sans text-sm text-ink/70">
@@ -551,6 +606,6 @@ export function AdminDangerPanel({ slug }: { slug: string }) {
           </button>
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }

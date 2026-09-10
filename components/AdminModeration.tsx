@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { QrSection } from "@/components/QrSection";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 import {
   AdminDangerPanel,
   AdminEventSettings,
@@ -193,16 +194,9 @@ export function AdminModeration() {
           )}
 
       <div className="mx-auto max-w-5xl">
-        <AdminRsvpPanel slug={SLUG} />
-        <AdminEventSettings slug={SLUG} />
-        <AdminStoragePanel slug={SLUG} />
-        <QrSection slug={SLUG} />
-        {/* Control de proyección */}
-        <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
-          <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-            Proyección
-          </h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* 1. Proyección */}
+        <CollapsibleSection title="Proyección" defaultOpen={true}>
+          <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
               onClick={() => control("pause")}
@@ -255,13 +249,10 @@ export function AdminModeration() {
               </button>
             </div>
           </div>
-        </section>
+        </CollapsibleSection>
 
-        {/* Pendientes */}
-        <section className="mb-8">
-          <h2 className="mb-3 font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-            Pendientes ({pending.length})
-          </h2>
+        {/* 2. Fotos: pendientes, aprobadas y rechazadas */}
+        <CollapsibleSection title="Pendientes" count={pending.length} defaultOpen={true}>
           {!photosLoading && pending.length === 0 ? (
             <p className="font-sans text-base text-ink/55">Sin fotos pendientes.</p>
           ) : (
@@ -312,14 +303,13 @@ export function AdminModeration() {
               ))}
             </div>
           )}
-        </section>
 
         {/* Aprobadas */}
         {approved.length > 0 && (
-          <section className="mb-8">
-            <h2 className="mb-3 font-sans text-xs tracking-[0.2em] text-bronze uppercase">
+          <div className="mt-5">
+            <h3 className="mb-2 font-sans text-xs tracking-[0.2em] text-ink/55 uppercase">
               Aprobadas ({approved.length})
-            </h2>
+            </h3>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
               {approved.map((p) => (
                 <div
@@ -347,15 +337,15 @@ export function AdminModeration() {
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
 
         {/* Rechazadas */}
         {rejected.length > 0 && (
-          <section>
-            <h2 className="mb-3 font-sans text-xs tracking-[0.2em] text-bronze uppercase">
+          <div className="mt-5">
+            <h3 className="mb-2 font-sans text-xs tracking-[0.2em] text-ink/55 uppercase">
               Rechazadas ({rejected.length})
-            </h2>
+            </h3>
             <div className="grid grid-cols-2 gap-3 opacity-50 sm:grid-cols-3 md:grid-cols-4">
               {rejected.map((p) => (
                 <div
@@ -389,9 +379,23 @@ export function AdminModeration() {
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
+        </CollapsibleSection>
 
+        {/* 3. Almacenamiento */}
+        <AdminStoragePanel slug={SLUG} />
+
+        {/* 4. QRs */}
+        <QrSection slug={SLUG} />
+
+        {/* 5. Invitados */}
+        <AdminRsvpPanel slug={SLUG} />
+
+        {/* 6. Evento y Reveal */}
+        <AdminEventSettings slug={SLUG} />
+
+        {/* 7. Zona peligrosa */}
         <AdminDangerPanel slug={SLUG} />
       </div>
     </div>

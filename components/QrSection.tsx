@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
+import { CollapsibleSection } from "@/components/CollapsibleSection";
 
 type QrTable = { table_number: number; qr_token: string; guest_name: string | null };
 
@@ -16,7 +17,6 @@ Confirmá tu asistencia acá: {link}
 
 export function QrSection({ slug }: { slug: string }) {
   const [tables, setTables] = useState<QrTable[] | null>(null);
-  const [expanded, setExpanded] = useState(false);
   const [selected, setSelected] = useState<QrTable | null>(null);
   const [qrImage, setQrImage] = useState<string | null>(null);
   const [qrBusy, setQrBusy] = useState(false);
@@ -183,38 +183,27 @@ p { font-size: 14px; word-break: break-all; }
   }
 
   return (
-    <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-sans text-xs tracking-[0.2em] text-bronze uppercase">
-          QRs e invitaciones ({tables.length} mesas)
-        </h2>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={addTable}
-            disabled={mutating}
-            className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory disabled:opacity-60"
-          >
-            {mutating ? "…" : "＋ Mesa"}
-          </button>
-          <button
-            type="button"
-            aria-expanded={expanded}
-            aria-controls="qr-table-cards"
-            onClick={() => setExpanded((value) => !value)}
-            className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
-          >
-            {expanded ? "Ocultar" : "Mostrar"}
-          </button>
-        </div>
-      </div>
+    <CollapsibleSection
+      title="QRs e invitaciones"
+      count={`${tables.length} mesas`}
+      defaultOpen={false}
+      actions={
+        <button
+          type="button"
+          onClick={addTable}
+          disabled={mutating}
+          className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory disabled:opacity-60"
+        >
+          {mutating ? "…" : "＋ Mesa"}
+        </button>
+      }
+    >
       {listError && (
-        <p role="alert" className="mt-2 font-sans text-sm text-ink/80">
+        <p role="alert" className="mb-2 font-sans text-sm text-ink/80">
           {listError}
         </p>
       )}
-      {expanded && (
-        <div id="qr-table-cards" className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
           {tables.map((t) => (
             <div
               key={t.table_number}
@@ -261,7 +250,6 @@ p { font-size: 14px; word-break: break-all; }
             </div>
           ))}
         </div>
-      )}
 
       {selected && (
         <div
@@ -331,6 +319,6 @@ p { font-size: 14px; word-break: break-all; }
           </div>
         </div>
       )}
-    </section>
+    </CollapsibleSection>
   );
 }

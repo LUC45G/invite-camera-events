@@ -54,8 +54,8 @@ export async function GET(request: Request) {
       count(*) FILTER (WHERE status = 'approved') AS approved,
       count(*) FILTER (WHERE status = 'pending') AS pending,
       count(*) FILTER (WHERE status = 'rejected') AS rejected,
-      COALESCE(SUM(size_kb), 0) AS total_kb,
-      MAX(created_at) AS last_upload
+      COALESCE(SUM(p.size_kb), 0) AS total_kb,
+      MAX(p.created_at) AS last_upload
     FROM photos p
     JOIN events e ON e.id = p.event_id
     WHERE e.slug = ${slug}

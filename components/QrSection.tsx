@@ -43,6 +43,10 @@ export function QrSection({ slug }: { slug: string }) {
 
   useEffect(() => {
     void loadTables();
+    // recarga cuando otro panel cambia mesas/nombres
+    const onChange = () => void loadTables();
+    window.addEventListener("qr:tables-changed", onChange);
+    return () => window.removeEventListener("qr:tables-changed", onChange);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

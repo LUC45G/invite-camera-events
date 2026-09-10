@@ -37,7 +37,7 @@ export function Stagger({ delay = 0, children }: Props) {
   return (
     <div
       ref={ref}
-      className={`transition-opacity duration-400 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+      className={`transition-opacity duration-1000 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}

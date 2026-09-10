@@ -158,7 +158,7 @@ A warm, muted palette anchored by cream and bronze. The accent is singular and d
 
 ### Reveal (Scroll Animation)
 - **Trigger:** IntersectionObserver at 20% threshold
-- **Animation:** Fade-in + 8px upward translate over 0.6s ease-out
+- **Animation:** Fade-in + 8px upward translate over 1s ease-out
 - **Reduced motion:** `prefers-reduced-motion: reduce` skips animation entirely, shows content immediately
 - **Behavior:** One-shot — once visible, never re-hides
 

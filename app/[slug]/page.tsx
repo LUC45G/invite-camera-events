@@ -32,22 +32,22 @@ export default async function Page({ params, searchParams }: Props) {
             Nos casamos
           </p>
         </Stagger>
-        <Stagger delay={120}>
+        <Stagger delay={150}>
           <h1 className="mt-4 font-serif leading-[1.1] text-ink" style={{ textWrap: "balance", fontSize: "clamp(3rem, 8vw, 4.5rem)" }}>
             {event.coupleNames}
           </h1>
         </Stagger>
-        <Stagger delay={240}>
+        <Stagger delay={300}>
           <p className="mt-4 font-sans text-lg text-ink/70 sm:text-xl">
             {event.date}
           </p>
         </Stagger>
-        <Stagger delay={360}>
+        <Stagger delay={450}>
           <div className="mt-8">
             <Countdown target={event.weddingTimestamp} />
           </div>
         </Stagger>
-        <Stagger delay={480}>
+        <Stagger delay={600}>
           <a
             href="#rsvp"
             className="mt-10 inline-block rounded-sm bg-bronze px-8 py-3 text-base text-ivory transition-colors hover:bg-bronze/90 sm:text-lg"
@@ -65,7 +65,7 @@ export default async function Page({ params, searchParams }: Props) {
               {event.story.heading}
             </h2>
           </Stagger>
-          <Stagger delay={150}>
+          <Stagger delay={200}>
             <div>
               {event.story.paragraphs.map((p) => (
                 <p
@@ -88,7 +88,7 @@ export default async function Page({ params, searchParams }: Props) {
               Ceremonia y festejo
             </h2>
           </Stagger>
-          <Stagger delay={150}>
+          <Stagger delay={200}>
             <div>
               <p className="mt-3 text-base leading-relaxed text-ink/70 sm:text-lg">
                 {event.venue}
@@ -121,7 +121,7 @@ export default async function Page({ params, searchParams }: Props) {
               { q: "Estacionamiento", a: "El salón tiene estacionamiento propio." },
               { q: "Niños", a: "La fiesta es solo para adultos." },
             ].map((faq, i) => (
-              <Stagger key={faq.q} delay={100 + i * 100}>
+              <Stagger key={faq.q} delay={150 + i * 150}>
                 <FaqItem question={faq.q} answer={faq.a} />
               </Stagger>
             ))}
@@ -138,7 +138,7 @@ export default async function Page({ params, searchParams }: Props) {
                 {existing ? "Ya confirmaste tu asistencia" : "Confirmá tu asistencia"}
               </h2>
             </Stagger>
-            <Stagger delay={150}>
+            <Stagger delay={200}>
               <div className={existing ? "flex flex-col gap-2" : "flex flex-col gap-4"}>
                 {!hasToken ? (
               <p className="text-center text-base leading-relaxed text-ink/70 sm:text-lg">
@@ -181,3 +181,4 @@ export default async function Page({ params, searchParams }: Props) {
     </div>
   );
 }
+

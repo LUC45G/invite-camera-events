@@ -181,6 +181,8 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
       if (!res.ok) throw new Error(payload.error ?? "No se pudo guardar el nombre");
       setEditingTable(null);
       await refresh();
+      // avisa al panel QR para que recargue nombres/tokens
+      window.dispatchEvent(new CustomEvent("qr:tables-changed"));
     } catch {
       // el error queda visible vía el banner de la lista al refrescar
     } finally {

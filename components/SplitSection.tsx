@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { FadeImage } from "@/components/FadeImage";
 import { ReactNode } from "react";
 
 type Props = {
@@ -9,8 +9,6 @@ type Props = {
 };
 
 export function SplitSection({ image, alt, reverse, children }: Props) {
-  const cols = reverse ? "grid-cols-[35fr_65fr]" : "grid-cols-[65fr_35fr]";
-
   return (
     <section
       className={`flex min-h-dvh snap-start flex-col md:grid md:min-h-dvh md:grid-rows-[1fr] ${
@@ -31,12 +29,10 @@ export function SplitSection({ image, alt, reverse, children }: Props) {
           reverse ? "md:order-2" : "md:order-1"
         }`}
       >
-        <Image
+        <FadeImage
           src={image}
           alt={alt}
-          fill
           sizes="(max-width: 768px) 100vw, 50vw"
-          className="object-cover"
         />
       </div>
     </section>

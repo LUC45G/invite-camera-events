@@ -47,6 +47,8 @@ npm run db:reset -- --yes  # ejecuta el reset real
 1. Laptop/TV en `<dominio>/<slug>/live`, fullscreen.
 2. Admin abierto en el celular del organizador para moderar.
 3. QRs en las mesas.
+4. Desde `/admin`, controlá RSVP, fecha de reveal, subida, proyección, almacenamiento y QR.
+5. Descargá el ZIP antes de usar “Borrar todo”; esa acción pide confirmación exacta.
 
 ## 6. Contingencias
 

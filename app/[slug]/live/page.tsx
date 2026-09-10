@@ -12,5 +12,11 @@ export default async function LivePage({ params }: Props) {
   const event = await getEventBySlug(slug);
   if (!event) return notFound();
 
-  return <LiveSlideshow slug={slug} interval={event.slideshow_interval} />;
+  return (
+    <LiveSlideshow
+      slug={slug}
+      interval={event.slideshow_interval}
+      projectionEnabled={event.projection_enabled}
+    />
+  );
 }

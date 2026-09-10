@@ -34,6 +34,12 @@ export async function POST(request: Request) {
     if (session) {
       const event = await getEventById(session.event_id);
       if (event) {
+        if (!event.upload_open) {
+          return NextResponse.json(
+            { error: "La carga de fotos está cerrada" },
+            { status: 423 },
+          );
+        }
         await touchSession(session.id);
         return NextResponse.json({
           sessionToken: session.session_token,

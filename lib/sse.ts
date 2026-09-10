@@ -13,10 +13,11 @@ export function broadcastPhotoAdded(photo: { id: string; url: string }) {
   emitter.emit(PHOTO_ADDED_EVENT, photo);
 }
 
-// Control del slideshow desde admin: pause, resume, next, prev, speed
+// Control del slideshow desde admin: pause, resume, next, prev, speed, projection
 export type SlideshowControl = {
-  action: "pause" | "resume" | "next" | "prev" | "speed";
+  action: "pause" | "resume" | "next" | "prev" | "speed" | "projection";
   value?: number;
+  enabled?: boolean;
 };
 
 export function broadcastSlideshow(control: SlideshowControl) {

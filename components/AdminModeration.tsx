@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { QrSection } from "@/components/QrSection";
+import {
+  AdminDangerPanel,
+  AdminEventSettings,
+  AdminRsvpPanel,
+  AdminStoragePanel,
+  useAdminRequest,
+} from "@/components/AdminOperations";
 
 type Photo = {
   id: string;
@@ -16,35 +23,41 @@ type Photo = {
 const SLUG = "nuestra-boda";
 
 export function AdminModeration() {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [stats, setStats] = useState<Record<string, number>>({});
   const [notification, setNotification] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-  const [speed, setSpeed] = useState<number | null>(null);
+  const [speedDraft, setSpeedDraft] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetch("/api/admin/slideshow")
-      .then((r) => r.json())
-      .then((d: { interval?: number }) => {
-        if (typeof d.interval === "number") setSpeed(d.interval);
-      })
-      .catch(() => setSpeed(5));
-  }, []);
-
-  const load = useCallback(async () => {
+  const fetchPhotos = useCallback(async (): Promise<{
+    photos: Photo[];
+    stats: Record<string, number>;
+  }> => {
     const res = await fetch(`/api/admin/photos?slug=${SLUG}`);
-    if (!res.ok) return;
     const data = await res.json();
-    setPhotos(data.photos ?? []);
-    const s: Record<string, number> = {};
-    for (const row of data.stats ?? []) s[row.status] = Number(row.n);
-    setStats(s);
-    setLoaded(true);
+    if (!res.ok) throw new Error(data.error ?? "No se pudo cargar fotos");
+    const stats: Record<string, number> = {};
+    for (const row of data.stats ?? []) stats[row.status] = Number(row.n);
+    return { photos: data.photos ?? [], stats };
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const fetchSpeed = useCallback(async (): Promise<number> => {
+    try {
+      const res = await fetch("/api/admin/slideshow");
+      const data = await res.json();
+      return typeof data.interval === "number" ? data.interval : 5;
+    } catch {
+      return 5;
+    }
+  }, []);
+
+  const {
+    data: photoData,
+    error: photoError,
+    loading: photosLoading,
+    refresh: refreshPhotos,
+  } = useAdminRequest(fetchPhotos);
+  const { data: savedSpeed } = useAdminRequest(fetchSpeed);
+  const photos = photoData?.photos ?? [];
+  const stats = photoData?.stats ?? {};
+  const speed = speedDraft ?? savedSpeed ?? null;
 
   const act = useCallback(
     async (id: string, action: "approve" | "reject" | "delete") => {
@@ -66,9 +79,9 @@ export function AdminModeration() {
           ? "Foto borrada"
           : `Foto ${action === "approve" ? "aprobada" : "rechazada"}`,
       );
-      load();
+      await refreshPhotos();
     },
-    [load],
+    [refreshPhotos],
   );
 
   const control = useCallback(
@@ -106,7 +119,9 @@ export function AdminModeration() {
           </a>
           <button
             type="button"
-            onClick={load}
+            onClick={() => {
+              void refreshPhotos();
+            }}
             className="rounded-sm border border-ink/20 bg-ivory px-4 py-1.5 font-sans text-sm text-ink"
           >
             Actualizar
@@ -130,7 +145,16 @@ export function AdminModeration() {
         </div>
       )}
 
+          {photoError && (
+            <p role="alert" className="mx-auto mb-4 max-w-5xl font-sans text-sm text-ink/80">
+              {photoError}
+            </p>
+          )}
+
       <div className="mx-auto max-w-5xl">
+        <AdminRsvpPanel slug={SLUG} />
+        <AdminEventSettings slug={SLUG} />
+        <AdminStoragePanel slug={SLUG} />
         <QrSection slug={SLUG} />
         {/* Control de proyección */}
         <section className="mb-8 rounded-sm border border-ink/10 bg-ivory p-4">
@@ -172,7 +196,7 @@ export function AdminModeration() {
                 min={2}
                 max={60}
                 value={speed ?? ""}
-                onChange={(e) => setSpeed(Number(e.target.value))}
+                onChange={(e) => setSpeedDraft(Number(e.target.value))}
                 className="w-16 rounded-sm border border-ink/20 bg-ivory px-2 py-2 text-base [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="text-ink/55">segundos</span>
@@ -193,7 +217,7 @@ export function AdminModeration() {
           <h2 className="mb-3 font-sans text-xs tracking-[0.2em] text-bronze uppercase">
             Pendientes ({pending.length})
           </h2>
-          {loaded && pending.length === 0 ? (
+          {!photosLoading && pending.length === 0 ? (
             <p className="font-sans text-base text-ink/55">Sin fotos pendientes.</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -316,6 +340,8 @@ export function AdminModeration() {
             </div>
           </section>
         )}
+
+        <AdminDangerPanel slug={SLUG} />
       </div>
     </div>
   );

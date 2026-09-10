@@ -11,6 +11,9 @@ export function QrSection({ slug }: { slug: string }) {
   const [qrBusy, setQrBusy] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const base = typeof window !== "undefined" ? window.location.origin : "";
+  const qrUrl = (token: string) => `${base}/${slug}/upload?qr=${token}`;
+  const inviteUrl = (token: string) => `${base}/${slug}?token=${token}`;
 
   useEffect(() => {
     fetch("/api/admin/tables")
@@ -63,10 +66,6 @@ export function QrSection({ slug }: { slug: string }) {
   }, [selected]);
 
   if (!tables) return null;
-
-  const base = typeof window !== "undefined" ? window.location.origin : "";
-  const qrUrl = (token: string) => `${base}/${slug}/upload?qr=${token}`;
-  const inviteUrl = (token: string) => `${base}/${slug}?token=${token}`;
 
   function openQr(table: QrTable) {
     setSelected(table);

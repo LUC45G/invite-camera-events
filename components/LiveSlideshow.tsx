@@ -2,14 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-type Props = { slug: string; interval: number };
+type Props = { slug: string; interval: number; projectionEnabled: boolean };
 
 type Photo = { id: string; cloudinary_url: string; thumbnail_url: string; created_at: string };
 
-export function LiveSlideshow({ slug, interval }: Props) {
+export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
+  const [liveProjectionEnabled, setLiveProjectionEnabled] = useState(projectionEnabled);
   const [speed, setSpeed] = useState(interval);
   const [connected, setConnected] = useState(true);
   const [cycle, setCycle] = useState(0); // cualquier control reinicia el timer
@@ -40,14 +41,14 @@ export function LiveSlideshow({ slug, interval }: Props) {
   // auto-avance (loop cada `speed` segundos, con 2+ fotos)
   // `cycle` reinicia el timer en cada cambio (manual o automático)
   useEffect(() => {
-    if (paused || photos.length < 2) return;
+    if (paused || !liveProjectionEnabled || photos.length < 2) return;
     setIndex((i) => i % photos.length); // re-alinear si el índice quedó mayor que la lista
     const t = setInterval(() => {
       setIndex((i) => (i + 1) % photos.length);
       setCycle((c) => c + 1);
     }, speed * 1000);
     return () => clearInterval(t);
-  }, [paused, speed, photos.length, cycle]);
+  }, [paused, liveProjectionEnabled, speed, photos.length, cycle]);
 
   // SSE: fotos nuevas (append, sin resetear índice) + controles de admin
   useEffect(() => {
@@ -64,6 +65,7 @@ export function LiveSlideshow({ slug, interval }: Props) {
         const c = JSON.parse((ev as MessageEvent).data) as {
           action: string;
           value?: number;
+          enabled?: boolean;
         };
         const len = Math.max(photosRef.current.length, 1);
         if (c.action === "pause") {
@@ -71,6 +73,10 @@ export function LiveSlideshow({ slug, interval }: Props) {
           setCycle((n) => n + 1);
         }
         if (c.action === "resume") setPaused(false);
+        if (c.action === "projection") {
+          setLiveProjectionEnabled(c.enabled !== false);
+          setCycle((n) => n + 1);
+        }
         if (c.action === "next") {
           setIndex((i) => (i + 1) % len);
           setCycle((n) => n + 1);
@@ -134,7 +140,12 @@ export function LiveSlideshow({ slug, interval }: Props) {
           Reconectando…
         </div>
       )}
-      {paused && photos.length > 0 && (
+      {!liveProjectionEnabled && photos.length > 0 && (
+        <div className="absolute bottom-6 left-6 rounded-sm bg-white/10 px-3 py-1.5 font-sans text-sm">
+          Proyección pausada por el organizador
+        </div>
+      )}
+      {paused && liveProjectionEnabled && photos.length > 0 && (
         <div className="absolute bottom-6 left-6 rounded-sm bg-white/10 px-3 py-1.5 font-sans text-sm">
           Pausado
         </div>

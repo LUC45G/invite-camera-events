@@ -44,6 +44,12 @@ export async function POST(request: Request) {
   if (!event) {
     return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   }
+  if (!event.upload_open) {
+    return NextResponse.json(
+      { error: "La carga de fotos está cerrada" },
+      { status: 423 },
+    );
+  }
 
   // Idempotencia: no registrar el mismo publicId dos veces
   const existing =
@@ -82,10 +88,9 @@ export async function POST(request: Request) {
     UPDATE upload_sessions
     SET photo_count = photo_count + 1, last_seen_at = now()
     WHERE id = ${session.id}`;
+  await touchSession(session.id);
 
   broadcastPhotoAdded({ id: inserted[0].id, url: thumb });
 
   return NextResponse.json({ ok: true, id: inserted[0].id });
 }
-
-void touchSession;

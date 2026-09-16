@@ -59,7 +59,11 @@ export async function POST(request: Request) {
   }
 
   const uploaded = await countPhotosForTable(session.table_qr_id);
-  if (uploaded >= event.max_photos_per_session) {
+  const tableRows = (await sql`SELECT max_photos FROM table_qrs WHERE id = ${session.table_qr_id} LIMIT 1`) as {
+    max_photos: number;
+  }[];
+  const limit = Number(tableRows[0]?.max_photos ?? event.max_photos_per_session ?? 24);
+  if (uploaded >= limit) {
     return NextResponse.json(
       { error: "Esta mesa alcanzó el límite de fotos" },
       { status: 409 },
@@ -69,6 +73,9 @@ export async function POST(request: Request) {
   const thumb = thumbnailUrl(publicId);
   // Full: misma transformación con ancho 1920
   const full = thumb.replace(/w_480/, "w_1920");
+
+  // Auto-aprueba si el score NSFW es menor a 50%; si no hay score o es >=50% queda pendiente para moderación
+  const status = nsfwScore != null && nsfwScore < 0.5 ? "approved" : "pending";
 
   const inserted = await sql`
     INSERT INTO photos (
@@ -80,7 +87,7 @@ export async function POST(request: Request) {
       ${session.event_id}, ${session.table_qr_id}, ${session.id},
       ${publicId}, ${full}, ${thumb},
       ${width ?? null}, ${height ?? null}, ${mime ?? null}, ${sizeKb ?? null},
-      ${nsfwScore ?? null}, 'pending'
+      ${nsfwScore ?? null}, ${status}
     )
     RETURNING id`;
 

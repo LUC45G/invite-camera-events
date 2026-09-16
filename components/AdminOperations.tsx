@@ -28,7 +28,6 @@ type EventSettings = {
   upload_open: boolean;
   projection_enabled: boolean;
   slideshow_interval: number;
-  max_photos_per_session: number;
 };
 
 type StorageMetric = { usage: number | null; limit: number | null };
@@ -347,7 +346,6 @@ type EventForm = {
   revealLocal: string;
   uploadOpen: boolean;
   projectionEnabled: boolean;
-  maxPhotos: number;
 };
 
 export function AdminEventSettings({ slug }: { slug: string }) {
@@ -368,7 +366,6 @@ export function AdminEventSettings({ slug }: { slug: string }) {
     revealLocal: toLocalInput(data?.event.reveal_at ?? null),
     uploadOpen: data?.event.upload_open ?? true,
     projectionEnabled: data?.event.projection_enabled ?? true,
-    maxPhotos: data?.event.max_photos_per_session ?? 24,
   };
 
   function updateForm(patch: Partial<EventForm>) {
@@ -391,7 +388,6 @@ export function AdminEventSettings({ slug }: { slug: string }) {
           reveal_at: form.revealLocal ? new Date(form.revealLocal).toISOString() : null,
           upload_open: form.uploadOpen,
           projection_enabled: form.projectionEnabled,
-          max_photos_per_session: form.maxPhotos,
         }),
       });
       const response = await res.json();
@@ -446,17 +442,7 @@ export function AdminEventSettings({ slug }: { slug: string }) {
           />
           Proyección habilitada
         </label>
-        <label className="flex flex-col gap-1 font-sans text-sm text-ink/70">
-          Límite de fotos por mesa
-          <input
-            type="number"
-            min={1}
-            max={100}
-            value={form.maxPhotos}
-            onChange={(e) => updateForm({ maxPhotos: Number(e.target.value) })}
-            className="w-28 rounded-sm border border-ink/20 bg-ivory px-3 py-2 text-base text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-          />
-        </label>
+
         {error && (
           <p role="alert" className="font-sans text-sm text-ink/80">
             {error}

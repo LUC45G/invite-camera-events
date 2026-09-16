@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 
-type QrTable = { table_number: number; qr_token: string; guest_name: string | null };
+type QrTable = { table_number: number; qr_token: string; guest_name: string | null; max_photos: number };
 
 // Plantilla del mensaje para WhatsApp. Variables: {nombre}, {mesa}, {link}.
 // Editá el texto acá y listo — el link con token se genera solo.
@@ -82,6 +82,23 @@ export function QrSection({ slug }: { slug: string }) {
       setListError(e instanceof Error ? e.message : "No se pudo eliminar la mesa");
     } finally {
       setMutating(false);
+    }
+  }
+
+  async function updateLimit(table_number: number, max_photos: number) {
+    if (!Number.isFinite(max_photos) || max_photos < 1 || max_photos > 100) return;
+    setTables((prev) => prev ? prev.map((t) => t.table_number === table_number ? { ...t, max_photos } : t) : prev);
+    try {
+      const r = await fetch("/api/admin/tables", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table_number, max_photos }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error ?? "No se pudo actualizar el límite");
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "No se pudo actualizar el límite");
+      await loadTables();
     }
   }
 
@@ -229,6 +246,18 @@ p { font-size: 14px; word-break: break-all; }
                 <p className="truncate font-mono text-xs text-ink/55">
                   {inviteUrl(t.qr_token)}
                 </p>
+                <label className="mt-2 flex items-center gap-2 font-sans text-xs text-ink/60">
+                  Límite
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={t.max_photos}
+                    onChange={(e) => updateLimit(t.table_number, Number(e.target.value))}
+                    className="w-16 rounded-sm border border-ink/15 bg-ivory px-2 py-1 text-sm text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <span>fotos</span>
+                </label>
               </div>
               <div className="flex gap-2">
                 <CopyButton

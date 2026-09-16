@@ -2,6 +2,12 @@
 // Placeholders genéricos: editar acá con los datos reales de la boda.
 // ponytail: config estática en archivo; un panel de edición es nice-to-have futuro.
 
+export type ScheduleItem = {
+  time: string; // "16:00"
+  title: string;
+  description: string;
+};
+
 export type WeddingEvent = {
   slug: string;
   coupleNames: string;
@@ -16,6 +22,7 @@ export type WeddingEvent = {
   contactPhone: string;
   heroImage: string;
   story: { heading: string; paragraphs: string[]; image: string };
+  schedule: ScheduleItem[];
 };
 
 export const weddingEvent: WeddingEvent = {
@@ -40,6 +47,13 @@ export const weddingEvent: WeddingEvent = {
     ],
     image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
   },
+  schedule: [
+    { time: "16:00", title: "Ceremonia", description: "Nos damos el sí en el predio." },
+    { time: "17:00", title: "Fotos y brindis", description: "Fotos grupales y primer brindis al aire libre." },
+    { time: "18:30", title: "Cena", description: "Cena servida para todas las mesas." },
+    { time: "20:30", title: "Fiesta", description: "Pista abierta hasta que el cuerpo aguante." },
+    { time: "23:30", title: "Cierre", description: "Último tema y despedida." },
+  ],
 };
 
 export function getEvent(slug: string): WeddingEvent | null {

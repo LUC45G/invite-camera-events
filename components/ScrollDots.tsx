@@ -9,7 +9,7 @@ import {
   smoothScrollTo,
 } from "@/lib/scroll";
 
-const LABELS = ["Inicio", "Historia", "Ceremonia", "Preguntas", "Confirmar"];
+const LABELS = ["Inicio", "Historia", "Cronograma", "Ceremonia", "Preguntas", "Confirmar"];
 
 export function ScrollDots() {
   const [active, setActive] = useState(0);

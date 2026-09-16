@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS table_qrs (
   event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
   table_number INT NOT NULL,
   qr_token VARCHAR(64) UNIQUE NOT NULL,
+  max_photos INT NOT NULL DEFAULT 24,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

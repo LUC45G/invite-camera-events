@@ -13,11 +13,11 @@ export async function GET() {
   }
 
   const rows = (await sql`
-    SELECT t.table_number, t.qr_token, g.name AS guest_name
+    SELECT t.table_number, t.qr_token, t.max_photos, g.name AS guest_name
     FROM table_qrs t
     LEFT JOIN guests g ON g.table_qr_id = t.id
     ORDER BY t.table_number ASC
-  `) as { table_number: number; qr_token: string; guest_name: string | null }[];
+  `) as { table_number: number; qr_token: string; max_photos: number; guest_name: string | null }[];
 
   return NextResponse.json({ tables: rows });
 }
@@ -56,7 +56,42 @@ export async function POST() {
   return NextResponse.json({ ok: true, table_number: tableNumber });
 }
 
+const patchSchema = z.object({
+  table_number: z.number().int().positive(),
+  max_photos: z.number().int().min(1).max(100),
+});
+
 const deleteSchema = z.object({ table_number: z.number().int().positive() });
+
+export async function PATCH(request: Request) {
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: "No autorizado" }, { status: 401 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const parsed = patchSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  }
+
+  const updated = (await sql`
+    UPDATE table_qrs SET max_photos = ${parsed.data.max_photos}
+    WHERE table_number = ${parsed.data.table_number}
+    RETURNING table_number, max_photos
+  `) as { table_number: number; max_photos: number }[];
+
+  if (!updated.length) {
+    return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
+  }
+
+  return NextResponse.json({ ok: true, table: updated[0] });
+}
 
 // Elimina una mesa solo si no tiene fotos (evita huérfanos en Cloudinary).
 export async function DELETE(request: Request) {

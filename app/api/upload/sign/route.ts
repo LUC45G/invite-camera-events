@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { signUpload } from "@/lib/cloudinary";
+import { sql } from "@/lib/db";
 import {
   countPhotosForTable,
   findSession,
@@ -42,9 +43,13 @@ export async function POST(request: Request) {
     );
   }
 
-  // Límite de fotos por mesa (fotos de todos los dispositivos de la mesa)
+  // Límite de fotos por mesa (configurable por QR, default 24)
   const uploaded = await countPhotosForTable(session.table_qr_id);
-  if (uploaded >= event.max_photos_per_session) {
+  const tableRows = (await sql`SELECT max_photos FROM table_qrs WHERE id = ${session.table_qr_id} LIMIT 1`) as {
+    max_photos: number;
+  }[];
+  const limit = Number(tableRows[0]?.max_photos ?? event.max_photos_per_session ?? 24);
+  if (uploaded >= limit) {
     return NextResponse.json(
       { error: "Esta mesa alcanzó el límite de fotos" },
       { status: 409 },
@@ -62,6 +67,6 @@ export async function POST(request: Request) {
     apiKey,
     cloudName: env.CLOUDINARY_CLOUD_NAME,
     folder,
-    remaining: event.max_photos_per_session - uploaded,
+    remaining: limit - uploaded,
   });
 }

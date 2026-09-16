@@ -9,6 +9,7 @@ import { BackToTop } from "@/components/BackToTop";
 import { ScrollDots } from "@/components/ScrollDots";
 import { Stagger } from "@/components/Stagger";
 import { FaqItem } from "@/components/FaqItem";
+import { Timeline } from "@/components/Timeline";
 
 type Props = PageProps<"/[slug]">;
 
@@ -89,7 +90,21 @@ export default async function Page({ params, searchParams }: Props) {
         </Reveal>
       </SplitSection>
 
-      {/* 3. Ceremonia y festejo — texto izquierda, foto derecha (65%) */}
+      {/* 3. Cronograma — línea de tiempo vertical */}
+      <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
+        <Reveal>
+          <Stagger delay={0}>
+            <h2 className="text-center font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
+              Cronograma
+            </h2>
+          </Stagger>
+          <div className="mt-8 w-full">
+            <Timeline items={event.schedule} />
+          </div>
+        </Reveal>
+      </section>
+
+      {/* 4. Ceremonia y festejo — texto izquierda, foto derecha (65%) */}
       <SplitSection image={event.heroImage} alt="Ceremonia" reverse>
         <Reveal>
           <Stagger delay={0}>
@@ -117,7 +132,7 @@ export default async function Page({ params, searchParams }: Props) {
         </Reveal>
       </SplitSection>
 
-      {/* 4. FAQ */}
+      {/* 5. FAQ */}
       <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
         <div className="w-[300px] sm:w-[400px]">
           <Reveal>
@@ -138,7 +153,7 @@ export default async function Page({ params, searchParams }: Props) {
         </div>
       </section>
 
-      {/* 5. RSVP */}
+      {/* 6. RSVP */}
       <section id="rsvp" className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
         <Reveal>
           <div className="w-[300px] sm:w-[400px]">

@@ -8,6 +8,24 @@ export type ScheduleItem = {
   description: string;
 };
 
+// Decoración floral de esquinas. Los PNG viven en /public/decor.
+export type DecorCorner =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+export type Decoration = {
+  src: string;
+  corner: DecorCorner;
+  width: number; // ancho intrínseco del PNG
+  height: number; // alto intrínseco del PNG
+  // "corner" (default): ancho fijo, el arte abraza la esquina en L.
+  // "side": alto completo, el arte se pega al costado (el canvas es
+  // transparente, así que el sobrante se recorta sin verse).
+  fit?: "corner" | "side";
+};
+
 export type WeddingEvent = {
   slug: string;
   coupleNames: string;
@@ -23,6 +41,11 @@ export type WeddingEvent = {
   heroImage: string;
   story: { heading: string; paragraphs: string[]; image: string };
   schedule: ScheduleItem[];
+  decor: {
+    history: Decoration[];
+    schedule: Decoration[];
+    ceremony: Decoration[];
+  };
 };
 
 export const weddingEvent: WeddingEvent = {
@@ -48,12 +71,29 @@ export const weddingEvent: WeddingEvent = {
     image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
   },
   schedule: [
-    { time: "16:00", title: "Ceremonia", description: "Nos damos el sí en el predio." },
-    { time: "17:00", title: "Fotos y brindis", description: "Fotos grupales y primer brindis al aire libre." },
-    { time: "18:30", title: "Cena", description: "Cena servida para todas las mesas." },
-    { time: "20:30", title: "Fiesta", description: "Pista abierta hasta que el cuerpo aguante." },
-    { time: "23:30", title: "Cierre", description: "Último tema y despedida." },
+    { time: "20:00", title: "Ceremonia", description: "Nos damos el sí en el predio." },
+    { time: "20:30", title: "Recepción", description: "Pinta la gula." },
+    { time: "21:00", title: "Fotos", description: "Cortamos la torta." },
+    { time: "22:30", title: "Cena", description: "Pinta la gula parte 2." },
+    { time: "00:30", title: "Baile", description: "Corte tropitango." },
+    { time: "01:30", title: "Mesa Dulce", description: "Pinta la gula pero con azúcar." },
+    { time: "03:00", title: "Cotillón", description: "Bailongo sabor sabrosongo." },
   ],
+  decor: {
+    // "Te invitamos a ser parte"
+    history: [
+      { src: "/decor/rose-bottom-right.png", corner: "bottom-right", width: 2500, height: 2500 },
+    ],
+    // Cronograma — un asset por costado, pegados al borde y a alto completo
+    schedule: [
+      { src: "/decor/cherry-top-right.png", corner: "top-right", width: 1920, height: 1080, fit: "side" },
+      { src: "/decor/cherry-bottom-left.png", corner: "bottom-left", width: 1920, height: 1080, fit: "side" },
+    ],
+    // Ceremonia y festejo
+    ceremony: [
+      { src: "/decor/rose-top-left.png", corner: "top-left", width: 2500, height: 2500 },
+    ],
+  },
 };
 
 export function getEvent(slug: string): WeddingEvent | null {

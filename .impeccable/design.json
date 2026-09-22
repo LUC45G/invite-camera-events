@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-08T00:00:00Z",
+  "generatedAt": "2026-09-21T00:00:00Z",
   "title": "Design System: QR Wedding",
   "extensions": {
     "colorMeta": {
@@ -53,8 +53,13 @@
     "motion": [
       {
         "name": "reveal-in",
-        "value": "opacity 0.6s ease-out, transform 0.6s ease-out",
+        "value": "opacity 1s ease-out, transform 1s ease-out",
         "purpose": "Scroll-reveal fade-in with 8px upward translate. One-shot, triggered by IntersectionObserver."
+      },
+      {
+        "name": "stagger-in",
+        "value": "opacity 1s ease-out with per-item transition-delay",
+        "purpose": "Staggered entry for grouped items (hero stack, FAQ rows, timeline entries). Delay steps are 120-200ms."
       },
       {
         "name": "color-transition",
@@ -65,7 +70,15 @@
     "breakpoints": [
       { "name": "sm", "value": "640px" },
       { "name": "md", "value": "768px" }
-    ]
+    ],
+    "decorationMeta": {
+      "purpose": "Floral PNGs anchored to section corners as a decorative frame. Assets live in public/decor/.",
+      "fitModes": [
+        { "name": "corner", "value": "width-scaled, art hugs the corner in L" },
+        { "name": "side", "value": "full-height, art hugs the horizontal edge; the transparent canvas overflow is clipped" }
+      ],
+      "depthOrder": "decoration z-0 -> photo z-10 -> text z-20"
+    }
   },
   "components": [
     {
@@ -73,16 +86,16 @@
       "kind": "button",
       "refersTo": "button-primary",
       "description": "The sole CTA button. Bronze fill, ivory text, minimal radius.",
-      "html": "<button class=\"ds-btn-primary\">Confirmar invitación</button>",
-      "css": ".ds-btn-primary { background: var(--color-bronze, #B57E7F); color: var(--color-ivory, #FFFFFF); padding: 12px 32px; border-radius: 4px; font-family: var(--font-sans); font-size: 1rem; border: none; cursor: pointer; transition: background-color 0.15s ease; } .ds-btn-primary:hover { background: rgba(181, 126, 127, 0.9); } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+      "html": "<button class=\"ds-btn-primary\">Confirmar asistencia</button>",
+      "css": ".ds-btn-primary { background: var(--color-bronze, #B57E7F); color: var(--color-ivory, #FFFFFF); padding: 12px 32px; border-radius: 4px; border: none; font-family: var(--font-sans); font-size: 1rem; cursor: pointer; transition: background-color 0.15s ease; } @media (min-width: 640px) { .ds-btn-primary { font-size: 1.125rem; } } .ds-btn-primary:hover { background: rgba(181, 126, 127, 0.9); } .ds-btn-primary:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }"
     },
     {
       "name": "Toggle Button",
       "kind": "button",
       "refersTo": "button-primary",
       "description": "Binary choice button used in the RSVP form. Bronze fill when selected, outlined when not.",
-      "html": "<button class=\"ds-toggle\" aria-pressed=\"true\">Voy a estar</button>",
-      "css": ".ds-toggle { padding: 10px 16px; border-radius: 4px; font-family: var(--font-sans); font-size: 1.125rem; border: 1px solid rgba(19,19,19,0.2); background: var(--color-ivory, #FFFFFF); color: var(--color-ink, #131313); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; } .ds-toggle[aria-pressed=\"true\"] { background: var(--color-bronze, #B57E7F); color: var(--color-ivory, #FFFFFF); border-color: var(--color-bronze, #B57E7F); } .ds-toggle:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+      "html": "<div class=\"ds-toggle-row\"><button class=\"ds-toggle\" aria-pressed=\"true\">Voy a estar</button><button class=\"ds-toggle\" aria-pressed=\"false\">No puedo ir</button></div>",
+      "css": ".ds-toggle-row { display: flex; gap: 12px; } .ds-toggle { padding: 10px 16px; border-radius: 4px; font-family: var(--font-sans); font-size: 1.125rem; border: 1px solid rgba(19,19,19,0.2); background: var(--color-ivory, #FFFFFF); color: var(--color-ink, #131313); cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease; } .ds-toggle[aria-pressed=\"true\"] { background: var(--color-bronze, #B57E7F); color: var(--color-ivory, #FFFFFF); border-color: var(--color-bronze, #B57E7F); } .ds-toggle:hover { border-color: rgba(19,19,19,0.4); } .ds-toggle:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
     },
     {
       "name": "Text Input",
@@ -90,34 +103,66 @@
       "refersTo": "input",
       "description": "Standard text field with ivory background, subtle border, bronze focus state.",
       "html": "<div class=\"ds-field\"><label class=\"ds-field-label\">Nombre</label><input class=\"ds-input\" placeholder=\"Tu nombre…\" /></div>",
-      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: var(--font-sans); font-size: 1rem; letter-spacing: 0.05em; color: rgba(19,19,19,0.7); } .ds-input { background: var(--color-ivory, #FFFFFF); color: var(--color-ink, #131313); border: 1px solid rgba(19,19,19,0.2); border-radius: 4px; padding: 10px 12px; font-family: var(--font-sans); font-size: 1.125rem; transition: border-color 0.15s ease; } .ds-input:focus { border-color: var(--color-bronze, #B57E7F); outline: none; } .ds-input:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 6px; } .ds-field-label { font-family: var(--font-sans); font-size: 1rem; letter-spacing: 0.025em; color: rgba(19,19,19,0.7); } .ds-input { background: var(--color-ivory, #FFFFFF); color: var(--color-ink, #131313); border: 1px solid rgba(19,19,19,0.2); border-radius: 4px; padding: 10px 12px; font-family: var(--font-sans); font-size: 1.125rem; transition: border-color 0.15s ease; } .ds-input:focus { border-color: var(--color-bronze, #B57E7F); outline: none; } .ds-input:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
     },
     {
       "name": "Split Section",
       "kind": "custom",
       "refersTo": "SplitSection",
-      "description": "Asymmetric two-column layout: 65/35 or 35/65 image-text split. Stacks vertically on mobile.",
-      "html": "<section class=\"ds-split\"><div class=\"ds-split-text\"><h2>Heading</h2><p>Body text</p></div><div class=\"ds-split-image\"></div></section>",
-      "css": ".ds-split { display: flex; min-height: 100dvh; } @media (min-width: 768px) { .ds-split { display: grid; grid-template-columns: 65fr 35fr; } } .ds-split-text { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px; } .ds-split-image { position: relative; overflow: hidden; } @media (max-width: 767px) { .ds-split-text { height: 50dvh; padding: 24px; } .ds-split-image { height: 50dvh; } }"
+      "description": "Asymmetric two-column layout: 65/35 or 35/65 image-text split. Stacks vertically on mobile, image on top.",
+      "html": "<section class=\"ds-split\"><div class=\"ds-split-text\"><h2 class=\"ds-split-heading\">Te invitamos a ser parte</h2><p class=\"ds-split-body\">Hoy queremos celebrar con quienes más queremos.</p></div><div class=\"ds-split-image\"></div></section>",
+      "css": ".ds-split { position: relative; display: flex; min-height: 100dvh; flex-direction: column; overflow: hidden; } @media (min-width: 768px) { .ds-split { display: grid; grid-template-columns: 65fr 35fr; } } .ds-split-text { position: relative; z-index: 20; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 32px; } @media (max-width: 767px) { .ds-split-text { order: 2; height: 50dvh; padding: 24px; } } .ds-split-heading { margin: 0; font-family: var(--font-serif); font-weight: 400; font-size: 2.25rem; line-height: 1.1; color: var(--color-ink, #131313); } @media (min-width: 640px) { .ds-split-heading { font-size: 3rem; } } .ds-split-body { margin: 12px 0 0; font-family: var(--font-sans); font-size: 1rem; line-height: 1.6; color: rgba(19,19,19,0.7); } .ds-split-image { position: relative; z-index: 10; overflow: hidden; background: rgba(19,19,19,0.08); } @media (max-width: 767px) { .ds-split-image { order: 1; height: 50dvh; } }"
     },
     {
       "name": "Countdown",
       "kind": "custom",
       "refersTo": "Countdown",
       "description": "Four-cell numeric countdown. Serif numerals, uppercase sans labels.",
-      "html": "<div class=\"ds-countdown\"><div class=\"ds-countdown-cell\"><span class=\"ds-countdown-num\">12</span><span class=\"ds-countdown-label\">días</span></div></div>",
-      "css": ".ds-countdown { display: flex; align-items: center; justify-content: center; gap: 16px; } @media (min-width: 640px) { .ds-countdown { gap: 24px; } } .ds-countdown-cell { display: flex; flex-direction: column; align-items: center; } .ds-countdown-num { font-family: var(--font-serif); font-size: 2.5rem; font-variant-numeric: tabular-nums; color: var(--color-ink, #131313); } @media (min-width: 640px) { .ds-countdown-num { font-size: 3rem; } } .ds-countdown-label { font-family: var(--font-sans); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(19,19,19,0.55); }"
+      "html": "<div class=\"ds-countdown\"><div class=\"ds-countdown-cell\"><span class=\"ds-countdown-num\">128</span><span class=\"ds-countdown-label\">días</span></div><div class=\"ds-countdown-cell\"><span class=\"ds-countdown-num\">04</span><span class=\"ds-countdown-label\">horas</span></div><div class=\"ds-countdown-cell\"><span class=\"ds-countdown-num\">27</span><span class=\"ds-countdown-label\">min</span></div><div class=\"ds-countdown-cell\"><span class=\"ds-countdown-num\">09</span><span class=\"ds-countdown-label\">seg</span></div></div>",
+      "css": ".ds-countdown { display: flex; align-items: center; justify-content: center; gap: 16px; } @media (min-width: 640px) { .ds-countdown { gap: 24px; } } .ds-countdown-cell { display: flex; flex-direction: column; align-items: center; } .ds-countdown-num { font-family: var(--font-serif); font-size: 2.25rem; font-variant-numeric: tabular-nums; color: var(--color-ink, #131313); } @media (min-width: 640px) { .ds-countdown-num { font-size: 3rem; } } .ds-countdown-label { font-family: var(--font-sans); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.2em; color: rgba(19,19,19,0.55); }"
+    },
+    {
+      "name": "FAQ Accordion",
+      "kind": "custom",
+      "refersTo": "FaqItem",
+      "description": "Single-open accordion. Bronze uppercase trigger with a plus that rotates into a cross; content expands on a grid-rows transition.",
+      "html": "<div class=\"ds-faq\"><div class=\"ds-faq-item ds-faq-item--open\"><button class=\"ds-faq-trigger\" type=\"button\" aria-expanded=\"true\">Código de vestimenta<span class=\"ds-faq-icon\">+</span></button><div class=\"ds-faq-content\"><div class=\"ds-faq-inner\"><p class=\"ds-faq-answer\">Elegante. Evitar color blanco o beige.</p></div></div></div><div class=\"ds-faq-item\"><button class=\"ds-faq-trigger\" type=\"button\" aria-expanded=\"false\">Horario<span class=\"ds-faq-icon\">+</span></button><div class=\"ds-faq-content\"><div class=\"ds-faq-inner\"><p class=\"ds-faq-answer\">La ceremonia empieza a las 16:00. Llegar 10 minutos antes.</p></div></div></div></div>",
+      "css": ".ds-faq { width: 300px; font-family: var(--font-sans); } @media (min-width: 640px) { .ds-faq { width: 400px; } } .ds-faq-item { border-bottom: 1px solid rgba(19,19,19,0.1); } .ds-faq-trigger { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; background: none; border: none; text-align: left; font-family: inherit; font-size: 0.875rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-bronze, #B57E7F); cursor: pointer; } .ds-faq-icon { font-size: 1.125rem; line-height: 1; color: rgba(19,19,19,0.4); transition: transform 0.2s ease; } .ds-faq-item--open .ds-faq-icon { transform: rotate(45deg); } .ds-faq-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease-out; } .ds-faq-item--open .ds-faq-content { grid-template-rows: 1fr; } .ds-faq-inner { overflow: hidden; min-height: 0; } .ds-faq-answer { margin: 0; padding-bottom: 16px; font-size: 1rem; line-height: 1.6; color: rgba(19,19,19,0.7); } .ds-faq-trigger:focus-visible { outline: 2px solid var(--color-navy, #000040); outline-offset: 2px; }"
+    },
+    {
+      "name": "Timeline",
+      "kind": "custom",
+      "refersTo": "Timeline",
+      "description": "Vertical schedule spine with bronze dots, uppercase bronze time labels and serif titles. Staggered entry.",
+      "html": "<div class=\"ds-timeline\"><span class=\"ds-timeline-spine\"></span><div class=\"ds-timeline-item\"><span class=\"ds-timeline-dot\"></span><div><span class=\"ds-timeline-time\">16:00</span><h3 class=\"ds-timeline-title\">Ceremonia</h3><p class=\"ds-timeline-desc\">Nos damos el sí en el predio.</p></div></div><div class=\"ds-timeline-item\"><span class=\"ds-timeline-dot\"></span><div><span class=\"ds-timeline-time\">17:00</span><h3 class=\"ds-timeline-title\">Fotos y brindis</h3><p class=\"ds-timeline-desc\">Fotos grupales y primer brindis al aire libre.</p></div></div></div>",
+      "css": ".ds-timeline { position: relative; width: 100%; max-width: 400px; font-family: var(--font-sans); } .ds-timeline-spine { position: absolute; top: 24px; bottom: 24px; left: 5px; width: 1px; background: rgba(19,19,19,0.15); } .ds-timeline-item { position: relative; display: flex; gap: 16px; padding-left: 24px; padding-bottom: 32px; text-align: left; } .ds-timeline-item:last-child { padding-bottom: 0; } .ds-timeline-dot { position: absolute; left: 0; top: 6px; width: 10px; height: 10px; border-radius: 9999px; background: var(--color-bronze, #B57E7F); } .ds-timeline-time { display: block; font-size: 0.75rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--color-bronze, #B57E7F); } .ds-timeline-title { margin: 4px 0 0; font-family: var(--font-serif); font-weight: 400; font-size: 1.25rem; line-height: 1.2; color: var(--color-ink, #131313); } .ds-timeline-desc { margin: 4px 0 0; font-size: 0.875rem; line-height: 1.6; color: rgba(19,19,19,0.7); } @media (min-width: 640px) { .ds-timeline-desc { font-size: 1rem; } }"
+    },
+    {
+      "name": "Scroll Dots",
+      "kind": "nav",
+      "refersTo": "ScrollDots",
+      "description": "Fixed section navigation. A hairline track with a bronze progress fill, one dot per section, labels revealed on hover. Active dot is bronze and larger.",
+      "html": "<nav class=\"ds-dots\" aria-label=\"Secciones\"><span class=\"ds-dots-track\"></span><span class=\"ds-dots-progress\"></span><span class=\"ds-dots-row\"><span class=\"ds-dots-dot ds-dots-dot--active\"></span></span><span class=\"ds-dots-row\"><span class=\"ds-dots-dot\"></span></span><span class=\"ds-dots-row\"><span class=\"ds-dots-dot\"></span></span><span class=\"ds-dots-row\"><span class=\"ds-dots-dot\"></span></span><span class=\"ds-dots-row\"><span class=\"ds-dots-dot\"></span></span><span class=\"ds-dots-row\"><span class=\"ds-dots-dot\"></span></span></nav>",
+      "css": ".ds-dots { position: relative; display: flex; flex-direction: column; align-items: center; } .ds-dots-track { position: absolute; top: 14px; bottom: 14px; left: 50%; width: 1px; transform: translateX(-50%); background: rgba(19,19,19,0.1); } .ds-dots-progress { position: absolute; top: 14px; left: 50%; width: 1px; height: calc((100% - 28px) * 0.2); transform: translateX(-50%); background: var(--color-bronze, #B57E7F); transition: height 0.5s ease-out; } .ds-dots-row { display: flex; align-items: center; justify-content: center; height: 28px; } .ds-dots-dot { position: relative; z-index: 1; width: 14px; height: 14px; border-radius: 9999px; border: 1px solid rgba(19,19,19,0.25); background: var(--color-cream, #DFD1CC); transition: transform 0.3s ease, border-color 0.3s ease; } .ds-dots-dot--active { width: 16px; height: 16px; border-color: var(--color-bronze, #B57E7F); background: var(--color-bronze, #B57E7F); } .ds-dots-row:hover .ds-dots-dot { transform: scale(1.25); border-color: rgba(19,19,19,0.5); }"
+    },
+    {
+      "name": "Section Decoration",
+      "kind": "custom",
+      "refersTo": "SectionDecor",
+      "description": "Transparent floral PNGs anchored to section corners as a frame. Assets live in public/decor/ (rose-top-left, rose-bottom-right, cherry-top-right, cherry-bottom-left). Decoration always sits below photos and text.",
+      "html": "<div class=\"ds-decor\"><span class=\"ds-decor-corner\"></span><span class=\"ds-decor-side\"></span><div class=\"ds-decor-content\">Cronograma</div></div>",
+      "css": ".ds-decor { position: relative; display: flex; align-items: center; justify-content: center; min-height: 220px; overflow: hidden; background: var(--color-cream, #DFD1CC); } .ds-decor-content { position: relative; z-index: 20; font-family: var(--font-serif); font-size: 1.75rem; color: var(--color-ink, #131313); } .ds-decor-corner { pointer-events: none; user-select: none; position: absolute; top: 0; left: 0; z-index: 0; width: 52%; max-width: 200px; aspect-ratio: 1 / 1; background-image: url('/decor/rose-top-left.png'); background-repeat: no-repeat; background-position: top left; background-size: contain; } .ds-decor-side { pointer-events: none; user-select: none; position: absolute; top: 0; bottom: 0; right: 0; z-index: 0; width: 60%; background-image: url('/decor/cherry-top-right.png'); background-repeat: no-repeat; background-position: right center; background-size: contain; }"
     }
   ],
   "narrative": {
     "northStar": "The Quiet Elegance",
-    "overview": "A restrained, warm visual world built on cream and bronze. The system prioritizes clarity and ceremony over decoration: full-viewport scroll-snap sections create a page-by-page reading rhythm, serif headings carry emotional weight while sans-serif body text stays effortlessly legible. Every element earns its place — no ornamental borders, no gradient washes, no hover theatrics beyond a subtle opacity shift.",
+    "overview": "A restrained, warm visual world built on cream and bronze. The system prioritizes clarity and ceremony over decoration: full-viewport scroll-snap sections create a page-by-page reading rhythm, serif headings carry emotional weight while sans-serif body text stays effortlessly legible. Every element earns its place — no ornamental borders beyond the documented section decorations, no gradient washes, no hover theatrics beyond a subtle opacity shift.",
     "keyCharacteristics": [
       "Cream background with bronze accent on a strict two-color-plus-neutrals palette",
       "Full-viewport scroll-snap sections as the primary spatial model",
       "Serif/sans pairing (Cormorant Garamond + Jost) for display/body hierarchy",
       "Scroll-reveal animations with prefers-reduced-motion respect",
-      "Minimal elevation — flat surfaces, no shadows, depth through image cropping and split layouts"
+      "Minimal elevation — flat surfaces, no shadows, depth through image cropping, split layouts, and the documented section decorations"
     ],
     "rules": [
       {
@@ -152,9 +197,9 @@
       "Don't add box-shadows. The system is flat; depth comes from images and typography weight.",
       "Don't use navy for anything other than focus-visible outlines.",
       "Don't use more than one accent color on a screen. Bronze is it.",
-      "Don't add decorative borders, dividers, or ornamental elements. Let whitespace do the work.",
+      "Don't add decorative borders, dividers, or ornamental elements beyond the documented section decorations and the structural wayfinding hairlines. Let whitespace do the work.",
       "Don't use rounded-lg or larger radius — the system's corner language is subtle (4px).",
-      "Don't animate with transforms beyond the established 8px translateY reveal pattern."
+      "Don't animate with transforms beyond the established 8px translateY reveal pattern and the documented FAQ accordion exception."
     ]
   }
 }

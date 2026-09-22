@@ -47,7 +47,8 @@ body {
 }
 .snap-container::-webkit-scrollbar-thumb {
   background: var(--bronze);
-  border-radius: 3px;
+  /* 4px es el token documentado; el navegador lo clampa a 3px en un thumb de 6px. */
+  border-radius: 4px;
 }
 
 /* Landing scroll: natural document scroll on mobile, snap on desktop. */
@@ -114,10 +115,6 @@ button:not(:disabled) {
     opacity: 1;
     transform: none;
     transition: none;
-  }
-  .faq-item {
-    animation: none;
-    opacity: 1;
   }
   .faq-content {
     grid-template-rows: 1fr !important;

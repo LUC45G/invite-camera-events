@@ -51,14 +51,14 @@ components:
 
 **Creative North Star: "The Quiet Elegance"**
 
-A restrained, warm visual world built on cream and bronze. The system prioritizes clarity and ceremony over decoration: full-viewport scroll-snap sections create a page-by-page reading rhythm, serif headings carry emotional weight while sans-serif body text stays effortlessly legible. Every element earns its place — no ornamental borders, no gradient washes, no hover theatrics beyond a subtle opacity shift. The palette is warm but not precious; the typography is classic but not stuffy.
+A restrained, warm visual world built on cream and bronze. The system prioritizes clarity and ceremony over decoration: full-viewport scroll-snap sections create a page-by-page reading rhythm, serif headings carry emotional weight while sans-serif body text stays effortlessly legible. Every element earns its place — no ornamental borders beyond the documented section decorations, no gradient washes, no hover theatrics beyond a subtle opacity shift. The palette is warm but not precious; the typography is classic but not stuffy.
 
 **Key Characteristics:**
 - Cream background with bronze accent on a strict two-color-plus-neutrals palette
 - Full-viewport scroll-snap sections as the primary spatial model
 - Serif/sans pairing (Cormorant Garamond + Jost) for display/body hierarchy
 - Scroll-reveal animations with `prefers-reduced-motion` respect
-- Minimal elevation — flat surfaces, no shadows, depth through image cropping and split layouts
+- Minimal elevation — flat surfaces, no shadows, depth through image cropping, split layouts, and the documented section decorations
 
 ## Colors
 
@@ -108,6 +108,19 @@ A warm, muted palette anchored by cream and bronze. The accent is singular and d
 
 **Density:** Generous whitespace. Form fields use `gap-5` (20px) between items. Sections center content vertically with `items-center justify-center`.
 
+## Section Decorations
+
+Floral PNGs anchor to section corners as a decorative frame. Configured in `lib/event-data.ts` under `decor`, rendered by `SectionDecor`.
+
+- **Assets:** `public/decor/` — `rose-bottom-right.png`, `rose-top-left.png` (1:1, abrazan la esquina en L), `cherry-top-right.png`, `cherry-bottom-left.png` (16:9, rama pegada a un costado)
+- **Placement:** one `{ src, corner, width, height, fit }` per decoration; corners are `top-left`, `top-right`, `bottom-left`, `bottom-right`
+- **Fit modes:** `corner` (default) sizes by width so the art hugs the corner in L; `side` uses full height and hugs the horizontal edge, letting the transparent canvas overflow and get clipped
+- **Anchoring:** mobile anchors to the full section; on split sections desktop anchors to the text column only, so the photo stays clean
+- **Sizing:** corner squares `w-[75%] max-w-[560px] sm:w-[52%]`; corner wide assets (aspect > 1.6) `w-[95%] max-w-[680px] sm:w-[68%]`; side assets `h-full w-auto max-w-none`
+- **Behavior:** `pointer-events-none`, `select-none`, `aria-hidden`, `alt=""` — never blocks interaction
+- **Depth:** decoration `z-0` → photo `z-10` → text `z-20`. Decorations always sit **below** photos; text always sits above
+- **Clipping:** decorated sections use `overflow-hidden` to crop any bleed
+
 ## Elevation & Depth
 
 **Flat by design.** No box-shadows, no backdrop-blurs, no layered surfaces. Depth is conveyed through:
@@ -119,7 +132,7 @@ A warm, muted palette anchored by cream and bronze. The accent is singular and d
 
 **Corner Language:** `rounded-sm` (4px) on buttons and inputs — barely perceptible, just enough to avoid harsh rectangles. No pill shapes, no large radius, no decorative clipping.
 
-**Borders:** Hairline borders on inputs (`border-ink/20`) and toggle buttons. Link underlines use `border-b` with subtle opacity. No decorative borders anywhere.
+**Borders:** Hairline borders on inputs (`border-ink/20`) and toggle buttons. Link underlines use `border-b` with subtle opacity. Structural hairlines are allowed for wayfinding (FAQ separators, timeline spine, scroll-dot track) and the documented section decorations are allowed as ornament; beyond those, no decorative borders.
 
 ## Components
 
@@ -163,15 +176,15 @@ A warm, muted palette anchored by cream and bronze. The accent is singular and d
 - **Behavior:** One-shot — once visible, never re-hides
 
 ### FAQ Accordion
-- **Mechanism:** Native `<details>/<summary>` with shared `name="faq"` (single-open accordion)
-- **Icon:** `+` rotates 45° to become `×` on open (`group-open:rotate-45`, 200ms)
+- **Mechanism:** `FaqItem` client component with `useState`; opening one dispatches a `faq:close-others` CustomEvent so only one stays open
+- **Icon:** `+` rotates 45° to read as `×` when open (conditional `rotate-45`, 200ms)
 - **Content:** Expands via `grid-template-rows: 0fr → 1fr` transition, 300ms ease-out (`.faq-content`)
-- **Entrance:** Items fade in staggered (`animation-delay: index * 100ms`, 400ms, `.faq-item`)
-- **Reduced motion:** Both animations disabled; content always visible
+- **Entrance:** Items fade in via `Stagger` (1000ms opacity ease-out, `150 + index * 150`ms delay)
+- **Reduced motion:** `Stagger` and `.reveal` show immediately and `.faq-content` stays fully expanded; the icon rotation remains, as the documented transform exception
 
 ### Browser Surfaces
 - **Selection:** Bronze background, ivory text (`::selection`)
-- **Scrollbar:** 6px, bronze thumb, transparent track, on `.snap-container`
+- **Scrollbar:** 6px wide, bronze thumb, transparent track, on `.snap-container`. The thumb uses the `rounded.sm` token; on a 6px-wide thumb the browser clamps it to a 3px round silhouette.
 
 ## Do's and Don'ts
 
@@ -186,6 +199,6 @@ A warm, muted palette anchored by cream and bronze. The accent is singular and d
 - **Don't** add box-shadows. The system is flat; depth comes from images and typography weight.
 - **Don't** use navy for anything other than focus-visible outlines.
 - **Don't** use more than one accent color on a screen. Bronze is it.
-- **Don't** add decorative borders, dividers, or ornamental elements. Let whitespace do the work.
+- **Don't** add decorative borders, dividers, or ornamental elements beyond the documented section decorations and the structural wayfinding hairlines. Let whitespace do the work.
 - **Don't** use `rounded-lg` or larger radius — the system's corner language is subtle (4px).
 - **Don't** animate with transforms beyond the established 8px translateY reveal pattern and the documented FAQ accordion exception.

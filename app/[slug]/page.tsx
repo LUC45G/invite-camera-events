@@ -10,6 +10,7 @@ import { ScrollDots } from "@/components/ScrollDots";
 import { Stagger } from "@/components/Stagger";
 import { FaqItem } from "@/components/FaqItem";
 import { Timeline } from "@/components/Timeline";
+import { SectionDecor } from "@/components/SectionDecor";
 
 type Props = PageProps<"/[slug]">;
 
@@ -68,7 +69,7 @@ export default async function Page({ params, searchParams }: Props) {
       </section>
 
       {/* 2. Nuestra historia — foto izquierda (65%), texto derecha (35%) */}
-      <SplitSection image={event.story.image} alt="Nosotros">
+      <SplitSection image={event.story.image} alt="Nosotros" decor={event.decor.history}>
         <Reveal>
           <Stagger delay={0}>
             <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
@@ -91,21 +92,24 @@ export default async function Page({ params, searchParams }: Props) {
       </SplitSection>
 
       {/* 3. Cronograma — línea de tiempo vertical */}
-      <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
-        <Reveal>
-          <Stagger delay={0}>
-            <h2 className="text-center font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
-              Cronograma
-            </h2>
-          </Stagger>
-          <div className="mt-8 w-full">
-            <Timeline items={event.schedule} />
-          </div>
-        </Reveal>
+      <section className="relative flex min-h-dvh snap-start flex-col items-center justify-center overflow-hidden px-6">
+        <SectionDecor items={event.decor.schedule} />
+        <div className="relative z-20 w-full">
+          <Reveal>
+            <Stagger delay={0}>
+              <h2 className="text-center font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>
+                Cronograma
+              </h2>
+            </Stagger>
+            <div className="mt-8 w-full">
+              <Timeline items={event.schedule} />
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* 4. Ceremonia y festejo — texto izquierda, foto derecha (65%) */}
-      <SplitSection image={event.heroImage} alt="Ceremonia" reverse>
+      <SplitSection image={event.heroImage} alt="Ceremonia" reverse decor={event.decor.ceremony}>
         <Reveal>
           <Stagger delay={0}>
             <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>

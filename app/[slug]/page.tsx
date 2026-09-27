@@ -137,8 +137,9 @@ export default async function Page({ params, searchParams }: Props) {
       </SplitSection>
 
       {/* 5. FAQ */}
-      <section className="flex min-h-dvh snap-start flex-col items-center justify-center px-6">
-        <div className="w-[300px] sm:w-[400px]">
+      <section className="relative flex min-h-dvh snap-start flex-col items-center justify-center overflow-hidden px-6">
+        <SectionDecor items={event.decor.faq} />
+        <div className="relative z-20 w-[300px] sm:w-[400px]">
           <Reveal>
             <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>Preguntas</h2>
           </Reveal>

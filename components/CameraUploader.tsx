@@ -312,6 +312,28 @@ export function CameraUploader({ slug, qr }: Props) {
             <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
               ¿Vincularse a la {tableName ?? `mesa ${tableNumber ?? ""}`}?
             </h1>
+            <div className="w-full text-left">
+              <h2 className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">
+                ¿Cómo funciona?
+              </h2>
+              <ol className="mt-3 flex flex-col gap-2 text-base leading-relaxed text-ink/70 sm:text-lg">
+                <li className="flex gap-3">
+                  <span className="font-serif text-xl text-bronze">1.</span>
+                  <span>Sacá la foto, confirmá y subí.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-serif text-xl text-bronze">2.</span>
+                  <span>Tu límite de fotos va a estar visible todo el tiempo.</span>
+                </li>
+                <li className="flex gap-3">
+                  <span className="font-serif text-xl text-bronze">3.</span>
+                  <span>Las fotos se van a proyectar en la pantalla.</span>
+                </li>
+              </ol>
+              <p className="mt-3 text-sm leading-relaxed text-ink/55 sm:text-base">
+                Pueden tardar unos segundos en aparecer.
+              </p>
+            </div>
             <p className="text-base text-ink/70 sm:text-lg">
               Este dispositivo va a quedar ligado a esta mesa durante toda la
               fiesta para subir sus fotos.

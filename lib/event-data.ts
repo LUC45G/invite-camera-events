@@ -24,6 +24,11 @@ export type Decoration = {
   // "side": alto completo, el arte se pega al costado (el canvas es
   // transparente, así que el sobrante se recorta sin verse).
   fit?: "corner" | "side";
+  mobile?: {
+    corner: DecorCorner;
+    width?: "small" | "default";
+  } | "hidden";
+  hidden?: boolean;
 };
 
 export type WeddingEvent = {
@@ -44,6 +49,7 @@ export type WeddingEvent = {
   decor: {
     history: Decoration[];
     schedule: Decoration[];
+    faq: Decoration[];
     ceremony: Decoration[];
   };
 };
@@ -82,16 +88,47 @@ export const weddingEvent: WeddingEvent = {
   decor: {
     // "Te invitamos a ser parte"
     history: [
-      { src: "/decor/rose-bottom-right.png", corner: "bottom-right", width: 2500, height: 2500 },
+      {
+        src: "/decor/rose-bottom-right.png",
+        corner: "bottom-right",
+        width: 2500,
+        height: 2500,
+        mobile: "hidden",
+        hidden: true,
+      },
     ],
     // Cronograma — un asset por costado, pegados al borde y a alto completo
     schedule: [
-      { src: "/decor/cherry-top-right.png", corner: "top-right", width: 1920, height: 1080, fit: "side" },
-      { src: "/decor/cherry-bottom-left.png", corner: "bottom-left", width: 1920, height: 1080, fit: "side" },
+      {
+        src: "/decor/cherry-top-right.png",
+        corner: "top-right",
+        width: 1920,
+        height: 1080,
+        fit: "side",
+        mobile: { corner: "top-right", width: "default" },
+      },
+    ],
+    // Preguntas — la segunda rama cherry usa exactamente el mismo tamaño responsive.
+    faq: [
+      {
+        src: "/decor/cherry-bottom-left.png",
+        corner: "bottom-left",
+        width: 1920,
+        height: 1080,
+        fit: "side",
+        mobile: { corner: "bottom-left", width: "default" },
+      },
     ],
     // Ceremonia y festejo
     ceremony: [
-      { src: "/decor/rose-top-left.png", corner: "top-left", width: 2500, height: 2500 },
+      {
+        src: "/decor/rose-top-left.png",
+        corner: "top-left",
+        width: 2500,
+        height: 2500,
+        mobile: "hidden",
+        hidden: true,
+      },
     ],
   },
 };

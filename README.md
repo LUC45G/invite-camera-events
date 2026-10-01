@@ -1,36 +1,72 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Invite Camera Events
 
-## Getting Started
+Plataforma web para bodas y eventos que conecta invitaciones, RSVP y recuerdos compartidos en tiempo real.
 
-First, run the development server:
+Los invitados escanean un QR desde su mesa, confirman su asistencia y suben fotos desde el celular —sin instalar ninguna app—. Las imágenes pueden moderarse y proyectarse en vivo durante el evento.
+
+## Funcionalidades
+
+- Invitaciones personalizadas con tokens únicos.
+- Confirmación de asistencia (RSVP).
+- Carga de fotos mediante QR por mesa.
+- Límite configurable de fotos por mesa.
+- Moderación de fotos y detección NSFW.
+- Galería y slideshow en vivo.
+- Control administrativo de pausa, avance y velocidad.
+- Descarga individual o masiva de fotos aprobadas.
+- Revelado posterior de la galería.
+
+## Arquitectura
+
+![Arquitectura de Invite Camera Events](docs/architecture/011026.png)
+
+La aplicación usa Next.js como frontend y backend, Neon para persistencia, Cloudinary para almacenamiento de imágenes y Server-Sent Events (SSE) para transmitir nuevas fotos y controles del slideshow a las pantallas en vivo.
+
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript
+- Neon PostgreSQL
+- Cloudinary
+- Server-Sent Events (SSE)
+- Vercel
+
+## Desarrollo local
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abrí [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Configuración
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Copiá `.env.example` como `.env.local` y completá:
 
-## Learn More
+```env
+DATABASE_URL=
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
+CLOUDINARY_API_KEY=
+CLOUDINARY_API_SECRET=
+ADMIN_PASSWORD=
+WEDDING_CONTACT_NAME=
+WEDDING_CONTACT_PHONE=
+```
 
-To learn more about Next.js, take a look at the following resources:
+Para configurar la base de datos, generar QRs y desplegar el evento, consultá [`RUNBOOK.md`](./RUNBOOK.md).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Scripts
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm run dev       # servidor de desarrollo
+npm run build     # build de producción
+npm run lint      # análisis estático
+npm run db:reset  # reset y seed de la base de datos
+npm run load:test # prueba de carga
+```
 
-## Deploy on Vercel
+## Despliegue
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+La aplicación está preparada para desplegarse en Vercel. La carga desde cámara requiere HTTPS. Para el procedimiento completo, variables de entorno y operación durante el evento, consultá [`RUNBOOK.md`](./RUNBOOK.md).

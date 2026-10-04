@@ -6,6 +6,7 @@ export type ScheduleItem = {
   time: string; // "16:00"
   title: string;
   description: string;
+  icon: string;
 };
 
 // Decoración floral de esquinas. Los PNG viven en /public/decor.
@@ -77,13 +78,16 @@ export const weddingEvent: WeddingEvent = {
     image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
   },
   schedule: [
-    { time: "20:00", title: "Ceremonia", description: "Nos damos el sí en el predio." },
-    { time: "20:30", title: "Recepción", description: "Pinta la gula." },
-    { time: "21:00", title: "Fotos", description: "Cortamos la torta." },
-    { time: "22:30", title: "Cena", description: "Pinta la gula parte 2." },
-    { time: "00:30", title: "Baile", description: "Corte tropitango." },
-    { time: "01:30", title: "Mesa Dulce", description: "Pinta la gula pero con azúcar." },
-    { time: "03:00", title: "Cotillón", description: "Bailongo sabor sabrosongo." },
+    { time: "19:30", title: "Ceremonia", description: "Sin derecho a devolución.", icon: "/icons/ceremonia.webp" },
+    { time: "20:00", title: "Baile de Entrada", description: "Aplaudan aunque bailemos mal.", icon: "/icons/baile-de-entrada.webp" },
+    { time: "20:30", title: "Recepción", description: "A la caza de canapés.", icon: "/icons/recepcion.png" },
+    { time: "20:30", title: "Fotos Familiares", description: "Sonrían, después las borramos.", icon: "/icons/fotos.png" },
+    { time: "21:30", title: "Vals", description: "Mood romántico activado.", icon: "/icons/vals.webp" },
+    { time: "22:00", title: "Cena", description: "Pintó la gula.", icon: "/icons/cena.png" },
+    { time: "23:00", title: "Baile", description: "Entran los prohibidos.", icon: "/icons/baile.png" },
+    { time: "00:30", title: "Mesa Dulce y Barra Libre", description: "Azúcar, alcohol y descontrol.", icon: "/icons/mesa-dulce.png" },
+    { time: "03:00", title: "Cotillón y Toro Mecánico", description: "A domar o morir.", icon: "/icons/cotillon.png" },
+    { time: "04:00", title: "Medianoche", description: "El bajón salvador.", icon: "/icons/medianoche.webp" },
   ],
   decor: {
     // "Te invitamos a ser parte"

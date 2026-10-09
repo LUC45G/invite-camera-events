@@ -3,80 +3,34 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { cloudinary } from "@/lib/cloudinary";
-
 import { getAdminEvent } from "@/lib/event-context";
+import { deleteEventData } from "@/lib/event-deletion";
 
 export const dynamic = "force-dynamic";
 
 const wipeSchema = z.object({
   slug: z.string().min(1).max(100),
   confirmation: z.literal("BORRAR TODO"),
-});
-
-function unauthorized() {
-  return NextResponse.json({ error: "No autorizado" }, { status: 401 });
-}
-
-function chunk<T>(values: T[], size: number): T[][] {
-  const groups: T[][] = [];
-  for (let i = 0; i < values.length; i += size) {
-    groups.push(values.slice(i, i + size));
-  }
-  return groups;
-}
+}).strict();
 
 export async function POST(request: Request) {
-  if (!(await isAdmin())) return unauthorized();
-
+  if (!(await isAdmin())) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  try { body = await request.json(); } catch {
+    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
-
   const parsed = wipeSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: "Escribí exactamente BORRAR TODO para confirmar" },
-      { status: 400 },
-    );
-  }
-
-  const event = await getAdminEvent(parsed.data.slug);
+  if (!parsed.success) return NextResponse.json({ error: "Escribí exactamente BORRAR TODO para confirmar" }, { status: 400 });
+  const event = await getAdminEvent(parsed.data.slug, true);
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
-
-  const photos = (await sql`
-    SELECT cloudinary_public_id FROM photos WHERE event_id = ${event.id}
-  `) as { cloudinary_public_id: string }[];
-  const publicIds = photos.map((photo) => photo.cloudinary_public_id);
-
   try {
-    for (const group of chunk(publicIds, 100)) {
-      await cloudinary.api.delete_resources(group, {
-        resource_type: "image",
-        type: "upload",
-      });
-    }
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error
-            ? `No se pudo borrar Cloudinary: ${error.message}`
-            : "No se pudo borrar Cloudinary",
-      },
-      { status: 502 },
+    const deletedPhotos = await deleteEventData(
+      async (text, values) => await sql.query(text, values),
+      async (ids) => await cloudinary.api.delete_resources(ids, { resource_type: "image", type: "upload", invalidate: true }),
+      event.id,
     );
+    return NextResponse.json({ ok: true, event: event.slug, deletedPhotos });
+  } catch {
+    return NextResponse.json({ error: "No se pudo completar el borrado. Los datos se conservan para reintentar y la carga permanece bloqueada." }, { status: 502 });
   }
-
-  // Las tablas dependientes (fotos, sesiones, invitados y QR) se borran en cascada.
-  await sql`DELETE FROM events WHERE id = ${event.id}`;
-
-  return NextResponse.json({
-    ok: true,
-    event: event.slug,
-    deletedPhotos: publicIds.length,
-    deletedCloudinary: publicIds.length,
-  });
 }

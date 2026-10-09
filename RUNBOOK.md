@@ -12,6 +12,24 @@
 
 ## 2. Setup de base de datos
 
+### Migración para el asistente de configuración
+
+Con `DATABASE_URL` configurada, ejecutar `npm run db:migrate`. Este comando
+crea las tablas y aplica migraciones aditivas en transacciones; no ejecuta
+seed, no borra datos y no regenera tokens. Repetirlo es seguro.
+
+Después entrar a `/admin`. Si hay un evento existente pendiente de configurar,
+elegir conservarlo y confirmar inicio/reveal, o eliminarlo explícitamente.
+Mientras falte esa confirmación, se bloquean nuevas cargas. El borrado requiere
+escribir `BORRAR TODO`, elimina recursos del evento en Cloudinary e invalida
+sus QR; si falla, conservar las referencias y reintentar desde el admin.
+
+Para comprobar migraciones y borrado sin servicios externos, usar `npm test`.
+Las pruebas usan PostgreSQL aislado en memoria y Cloudinary simulado.
+
+El seed/reset de las secciones siguientes corresponde al flujo manual anterior
+y al desarrollo; no usar reset para migrar un evento que se quiera conservar.
+
 1. Abrir Neon → SQL Editor.
 2. Pegar y ejecutar `db/schema.sql` (idempotente).
 3. Editar las variables al inicio de `db/seed.sql` y ejecutarlo.

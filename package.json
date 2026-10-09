@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --test tests/*.test.mjs",
     "db:reset": "node --experimental-strip-types scripts/reset-db.mts",
+    "db:migrate": "node --experimental-strip-types scripts/migrate-db.mts",
     "load:test": "node --experimental-strip-types scripts/load-test.mts"
   },
   "dependencies": {
@@ -23,6 +25,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/qrcode": "^1.5.6",

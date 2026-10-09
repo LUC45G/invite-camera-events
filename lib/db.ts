@@ -12,6 +12,13 @@ export type Event = {
   max_photos_per_session: number;
   projection_enabled: boolean;
   slideshow_interval: number;
+  access_mode: "invitations" | "public_qr";
+  starts_at: string | null;
+  upload_starts_at: string | null;
+  upload_ends_at: string | null;
+  setup_complete: boolean;
+  deletion_pending: boolean;
+  public_qr_token: string | null;
 };
 
 export type Guest = {

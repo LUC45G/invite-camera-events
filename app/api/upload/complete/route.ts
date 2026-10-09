@@ -44,6 +44,9 @@ export async function POST(request: Request) {
   if (!event) {
     return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   }
+  if (!event.setup_complete || event.deletion_pending) {
+    return NextResponse.json({ error: "El evento no está disponible para cargar fotos" }, { status: 423 });
+  }
   if (!event.upload_open) {
     return NextResponse.json(
       { error: "La carga de fotos está cerrada" },

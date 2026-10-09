@@ -6,8 +6,9 @@ export async function getInstallationEvent(): Promise<Event | null> {
   return selectInstallationEvent(events);
 }
 
-export async function getAdminEvent(requestedSlug?: string | null): Promise<Event | null> {
+export async function getAdminEvent(requestedSlug?: string | null, allowPending = false): Promise<Event | null> {
   const event = await getInstallationEvent();
   if (requestedSlug && event?.slug !== requestedSlug) return null;
+  if (!allowPending && event && (event.setup_complete === false || event.deletion_pending)) return null;
   return event;
 }

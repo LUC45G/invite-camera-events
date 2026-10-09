@@ -3,6 +3,8 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 
 const renameSchema = z.object({
@@ -20,6 +22,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -33,7 +38,7 @@ export async function POST(request: Request) {
   }
 
   const tables = (await sql`
-    SELECT id FROM table_qrs WHERE table_number = ${parsed.data.table_number} LIMIT 1
+    SELECT id FROM table_qrs WHERE table_number = ${parsed.data.table_number} AND event_id = ${event.id} LIMIT 1
   `) as { id: string }[];
   const table = tables[0];
   if (!table) {
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
 
   if (name !== undefined) {
     await sql`
-      UPDATE guests SET name = ${name} WHERE table_qr_id = ${table.id}
+      UPDATE guests SET name = ${name} WHERE table_qr_id = ${table.id} AND event_id = ${event.id}
     `;
   }
   if (status !== undefined) {
@@ -52,7 +57,7 @@ export async function POST(request: Request) {
       UPDATE guests
       SET rsvp_status = ${status},
           rsvp_responded_at = ${status === "pending" ? null : new Date().toISOString()}
-      WHERE table_qr_id = ${table.id}
+      WHERE table_qr_id = ${table.id} AND event_id = ${event.id}
     `;
   }
   return NextResponse.json({ ok: true });

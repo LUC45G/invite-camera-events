@@ -21,9 +21,7 @@ type Photo = {
   created_at: string;
 };
 
-const SLUG = "nuestra-boda";
-
-export function AdminModeration() {
+export function AdminModeration({ slug }: { slug: string }) {
   const [notification, setNotification] = useState<string | null>(null);
   const [speedDraft, setSpeedDraft] = useState<number | null>(null);
   const [busyPhoto, setBusyPhoto] = useState<string | null>(null);
@@ -34,13 +32,13 @@ export function AdminModeration() {
     photos: Photo[];
     stats: Record<string, number>;
   }> => {
-    const res = await fetch(`/api/admin/photos?slug=${SLUG}`);
+    const res = await fetch(`/api/admin/photos?slug=${encodeURIComponent(slug)}`);
     const data = await res.json();
     if (!res.ok) throw new Error(data.error ?? "No se pudo cargar fotos");
     const stats: Record<string, number> = {};
     for (const row of data.stats ?? []) stats[row.status] = Number(row.n);
     return { photos: data.photos ?? [], stats };
-  }, []);
+  }, [slug]);
 
   const fetchSpeed = useCallback(async (): Promise<number> => {
     try {
@@ -116,13 +114,13 @@ export function AdminModeration() {
     setDownloading(true);
     setNotification(null);
     try {
-      const res = await fetch(`/api/admin/export?slug=${SLUG}`);
+      const res = await fetch(`/api/admin/export?slug=${encodeURIComponent(slug)}`);
       if (!res.ok) throw new Error("No se pudo generar el ZIP");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${SLUG}-fotos.zip`;
+      a.download = `${slug}-fotos.zip`;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -384,19 +382,19 @@ export function AdminModeration() {
         </CollapsibleSection>
 
         {/* 3. Almacenamiento */}
-        <AdminStoragePanel slug={SLUG} />
+        <AdminStoragePanel slug={slug} />
 
         {/* 4. QRs */}
-        <QrSection slug={SLUG} />
+        <QrSection slug={slug} />
 
         {/* 5. Invitados */}
-        <AdminRsvpPanel slug={SLUG} />
+        <AdminRsvpPanel slug={slug} />
 
         {/* 6. Evento y Reveal */}
-        <AdminEventSettings slug={SLUG} />
+        <AdminEventSettings slug={slug} />
 
         {/* 7. Zona peligrosa */}
-        <AdminDangerPanel slug={SLUG} />
+        <AdminDangerPanel slug={slug} />
       </div>
     </div>
   );

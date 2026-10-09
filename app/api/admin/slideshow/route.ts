@@ -4,6 +4,8 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { broadcastSlideshow } from "@/lib/sse";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 
 const controlSchema = z.object({
@@ -17,8 +19,11 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+
   const rows = (await sql`
-    SELECT slideshow_interval FROM events LIMIT 1
+    SELECT slideshow_interval FROM events WHERE id = ${event.id}
   `) as { slideshow_interval: number }[];
 
   return NextResponse.json({
@@ -31,6 +36,9 @@ export async function POST(request: Request) {
   if (!(await isAdmin())) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
+
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   let body: unknown;
   try {
@@ -50,7 +58,7 @@ export async function POST(request: Request) {
     if (!value) {
       return NextResponse.json({ error: "Falta value" }, { status: 400 });
     }
-    await sql`UPDATE events SET slideshow_interval = ${value}`;
+    await sql`UPDATE events SET slideshow_interval = ${value} WHERE id = ${event.id}`;
     broadcastSlideshow({ action: "speed", value });
     return NextResponse.json({ ok: true, interval: value });
   }

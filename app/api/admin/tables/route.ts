@@ -3,6 +3,8 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 
 // Lista de mesas con sus tokens (solo admin). El cliente arma las URLs
@@ -12,10 +14,14 @@ export async function GET() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+
   const rows = (await sql`
     SELECT t.table_number, t.qr_token, t.max_photos, g.name AS guest_name
     FROM table_qrs t
     LEFT JOIN guests g ON g.table_qr_id = t.id
+    WHERE t.event_id = ${event.id}
     ORDER BY t.table_number ASC
   `) as { table_number: number; qr_token: string; max_photos: number; guest_name: string | null }[];
 
@@ -28,16 +34,11 @@ export async function POST() {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
-  const events = (await sql`
-    SELECT id FROM events LIMIT 1
-  `) as { id: string }[];
-  const event = events[0];
-  if (!event) {
-    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
-  }
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   const maxRows = (await sql`
-    SELECT COALESCE(MAX(table_number), 0) AS max FROM table_qrs
+    SELECT COALESCE(MAX(table_number), 0) AS max FROM table_qrs WHERE event_id = ${event.id}
   `) as { max: string }[];
   const tableNumber = Number(maxRows[0]?.max ?? 0) + 1;
 
@@ -68,6 +69,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -82,7 +86,7 @@ export async function PATCH(request: Request) {
 
   const updated = (await sql`
     UPDATE table_qrs SET max_photos = ${parsed.data.max_photos}
-    WHERE table_number = ${parsed.data.table_number}
+    WHERE table_number = ${parsed.data.table_number} AND event_id = ${event.id}
     RETURNING table_number, max_photos
   `) as { table_number: number; max_photos: number }[];
 
@@ -99,6 +103,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "No autorizado" }, { status: 401 });
   }
 
+  const event = await getAdminEvent();
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+
   let body: unknown;
   try {
     body = await request.json();
@@ -112,7 +119,7 @@ export async function DELETE(request: Request) {
   }
 
   const tables = (await sql`
-    SELECT id FROM table_qrs WHERE table_number = ${parsed.data.table_number} LIMIT 1
+    SELECT id FROM table_qrs WHERE table_number = ${parsed.data.table_number} AND event_id = ${event.id} LIMIT 1
   `) as { id: string }[];
   const table = tables[0];
   if (!table) {
@@ -129,7 +136,7 @@ export async function DELETE(request: Request) {
     );
   }
 
-  await sql`DELETE FROM guests WHERE table_qr_id = ${table.id}`;
-  await sql`DELETE FROM table_qrs WHERE id = ${table.id}`;
+  await sql`DELETE FROM guests WHERE table_qr_id = ${table.id} AND event_id = ${event.id}`;
+  await sql`DELETE FROM table_qrs WHERE id = ${table.id} AND event_id = ${event.id}`;
   return NextResponse.json({ ok: true });
 }

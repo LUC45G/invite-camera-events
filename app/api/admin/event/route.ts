@@ -4,6 +4,8 @@ import { sql, type Event } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { broadcastSlideshow } from "@/lib/sse";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 
 type EventSettings = Pick<
@@ -37,12 +39,13 @@ export async function GET(request: Request) {
   if (!(await isAdmin())) return unauthorized();
 
   const { searchParams } = new URL(request.url);
-  const slug = searchParams.get("slug") ?? "nuestra-boda";
+  const event = await getAdminEvent(searchParams.get("slug"));
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   const rows = (await sql`
     SELECT name, slug, reveal_at, upload_open, projection_enabled,
            slideshow_interval, max_photos_per_session
     FROM events
-    WHERE slug = ${slug}
+    WHERE id = ${event.id}
     LIMIT 1
   `) as EventSettings[];
 
@@ -68,16 +71,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
-  const eventRows = (await sql`
-    SELECT id, projection_enabled
-    FROM events
-    WHERE slug = ${parsed.data.slug}
-    LIMIT 1
-  `) as { id: string; projection_enabled: boolean }[];
-  const event = eventRows[0];
-  if (!event) {
-    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
-  }
+  const event = await getAdminEvent(parsed.data.slug);
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   let revealAt: string | null | undefined;
   if (parsed.data.reveal_at !== undefined) {

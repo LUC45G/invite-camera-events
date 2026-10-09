@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 
 type AdminGuestRow = {
@@ -21,7 +23,8 @@ export async function GET(request: Request) {
   if (!(await isAdmin())) return unauthorized();
 
   const { searchParams } = new URL(request.url);
-  const slug = searchParams.get("slug") ?? "nuestra-boda";
+  const event = await getAdminEvent(searchParams.get("slug"));
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   const guests = (await sql`
     SELECT t.table_number, g.name, g.rsvp_status, g.rsvp_guests,
@@ -29,7 +32,7 @@ export async function GET(request: Request) {
     FROM guests g
     JOIN events e ON e.id = g.event_id
     LEFT JOIN table_qrs t ON t.id = g.table_qr_id
-    WHERE e.slug = ${slug}
+    WHERE e.id = ${event.id}
     ORDER BY t.table_number ASC, g.name ASC
   `) as AdminGuestRow[];
 

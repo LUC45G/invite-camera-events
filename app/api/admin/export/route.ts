@@ -3,6 +3,8 @@ import JSZip from "jszip";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
@@ -13,12 +15,13 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const slug = searchParams.get("slug") ?? "nuestra-boda";
+  const event = await getAdminEvent(searchParams.get("slug"));
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   const photos = (await sql`
     SELECT cloudinary_url FROM photos p
     JOIN events e ON e.id = p.event_id
-    WHERE e.slug = ${slug} AND p.status = 'approved'
+    WHERE e.id = ${event.id} AND p.status = 'approved'
     ORDER BY p.created_at ASC
   `) as { cloudinary_url: string }[];
 
@@ -46,7 +49,7 @@ export async function GET(request: Request) {
   return new Response(content, {
     headers: {
       "Content-Type": "application/zip",
-      "Content-Disposition": `attachment; filename="${slug}-fotos.zip"`,
+      "Content-Disposition": `attachment; filename="${event.slug}-fotos.zip"`,
     },
   });
 }

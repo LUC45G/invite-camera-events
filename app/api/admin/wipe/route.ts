@@ -4,6 +4,8 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { cloudinary } from "@/lib/cloudinary";
 
+import { getAdminEvent } from "@/lib/event-context";
+
 export const dynamic = "force-dynamic";
 
 const wipeSchema = z.object({
@@ -41,13 +43,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const events = (await sql`
-    SELECT id, name, slug FROM events WHERE slug = ${parsed.data.slug} LIMIT 1
-  `) as { id: string; name: string; slug: string }[];
-  const event = events[0];
-  if (!event) {
-    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
-  }
+  const event = await getAdminEvent(parsed.data.slug);
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   const photos = (await sql`
     SELECT cloudinary_public_id FROM photos WHERE event_id = ${event.id}

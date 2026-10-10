@@ -16,10 +16,10 @@ export default async function UploadPage({ params, searchParams }: Props) {
     return (
       <div className="flex min-h-dvh flex-col items-center justify-center gap-3 px-6 text-center">
         <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
-          Escaneá el QR de tu mesa
+          Escaneá el QR de tu familia
         </h1>
         <p className="text-base text-ink/70 sm:text-lg">
-          Apuntá la cámara de tu celular al código QR que está en tu mesa.
+          Usá el código QR de tu familia para cargar fotos.
         </p>
       </div>
     );

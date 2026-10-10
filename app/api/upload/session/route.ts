@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
   const { qr, sessionToken, confirmed } = parsed.data;
 
-  // La mesa escaneada se valida primero: todo lo demás depende de ella.
+  // La familia escaneada se valida primero: todo lo demás depende de ella.
   const table = await findTableQr(qr);
   if (!table) {
     return NextResponse.json({ error: "QR inválido" }, { status: 403 });
@@ -51,12 +51,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Solo las mesas que confirmaron asistencia pueden usar la cámara.
+  // Solo las familias que confirmaron asistencia pueden usar la cámara.
   // Pendientes o rechazadas vuelven a la invitación con aviso.
   const guests = await findGuestByTable(table.id);
   if (!guests || guests.rsvp_status !== "accepted") {
     return NextResponse.json(
-      { error: "Mesa sin confirmación", rsvpRequired: true },
+      { error: "Familia sin confirmación", rsvpRequired: true },
       { status: 403 },
     );
   }
@@ -64,11 +64,11 @@ export async function POST(request: Request) {
   const display = await getTableDisplay(table.id);
   const tableInfo = {
     tableNumber: display?.table_number ?? table.table_number,
-    tableName: display?.guest_name ?? `Mesa ${table.table_number}`,
+    tableName: display?.guest_name ?? `Familia ${table.table_number}`,
   };
 
-  // Reanudar sesión existente del dispositivo, solo si es de esta mesa.
-  // El dispositivo queda ligado a la primera mesa que escaneó.
+  // Reanudar sesión existente del dispositivo, solo si es de esta familia.
+  // El dispositivo queda ligado a la primera familia que escaneó.
   if (sessionToken) {
     const session = await findSession(sessionToken);
     if (session) {
@@ -76,10 +76,10 @@ export async function POST(request: Request) {
         const locked = await getTableDisplay(session.table_qr_id);
         return NextResponse.json(
           {
-            error: "Este dispositivo ya está vinculado a otra mesa",
+            error: "Este dispositivo ya está vinculado a otra familia",
             lockedTable: {
               tableNumber: locked?.table_number ?? null,
-              tableName: locked?.guest_name ?? "tu mesa",
+              tableName: locked?.guest_name ?? "tu familia",
             },
           },
           { status: 409 },
@@ -96,7 +96,7 @@ export async function POST(request: Request) {
     // Token de sesión inválido/expirado: sigue el flujo de vinculación
   }
 
-  // Vinculación explícita: sin confirmación solo se informa la mesa,
+  // Vinculación explícita: sin confirmación solo se informa la familia,
   // sin crear sesión. Vincular restringe el dispositivo, así que se pide Sí/No.
   if (!confirmed) {
     return NextResponse.json({ confirm: true, ...tableInfo });

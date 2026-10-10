@@ -5,6 +5,7 @@ import { getInstallationEvent } from "@/lib/event-context";
 import { AdminExistingSetup } from "@/components/AdminExistingSetup";
 import { sql } from "@/lib/db";
 import { weddingEvent } from "@/lib/event-data";
+import { AdminInitialSetup } from "@/components/AdminInitialSetup";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function AdminPage() {
 
   const event = await getInstallationEvent();
   if (!event) {
-    return <main className="min-h-dvh bg-cream px-6 py-12 text-center"><h1 className="font-serif text-3xl">Configurar el evento</h1><p className="mt-4">Todavía no hay un evento configurado.</p></main>;
+    return <AdminInitialSetup suggestedStart={weddingEvent.weddingTimestamp} slug={weddingEvent.slug} />;
   }
 
   if (event.setup_complete === undefined) {
@@ -34,7 +35,7 @@ export default async function AdminPage() {
 
   return (
     <div className="admin-scroll">
-      <AdminModeration slug={event.slug} />
+      <AdminModeration slug={event.slug} eventName={event.name} />
     </div>
   );
 }

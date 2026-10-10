@@ -46,7 +46,7 @@ export async function POST(request: Request) {
     );
   }
 
-  // Límite de fotos por mesa (configurable por QR, default 24)
+  // Límite de fotos por familia (configurable por QR, default 24)
   const uploaded = await countPhotosForTable(session.table_qr_id);
   const tableRows = (await sql`SELECT max_photos FROM table_qrs WHERE id = ${session.table_qr_id} LIMIT 1`) as {
     max_photos: number;
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
   const limit = Number(tableRows[0]?.max_photos ?? event.max_photos_per_session ?? 24);
   if (uploaded >= limit) {
     return NextResponse.json(
-      { error: "Esta mesa alcanzó el límite de fotos" },
+      { error: "Esta familia alcanzó el límite de fotos" },
       { status: 409 },
     );
   }

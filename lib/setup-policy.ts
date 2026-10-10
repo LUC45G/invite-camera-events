@@ -23,6 +23,20 @@ export const retainedSetupSchema = z.object({
   return new Date(data.reveal_at) >= new Date(eventSchedule(data.starts_at).min_reveal_at);
 }, { message: "El reveal debe ser desde las 12:00 del segundo día posterior al evento", path: ["reveal_at"] });
 
+export const newEventSetupSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  starts_at: z.string().datetime({ offset: true }),
+  reveal_at: z.string().datetime({ offset: true }),
+  access_mode: z.literal("invitations"),
+  max_photos_per_session: z.number().int().min(1).max(100),
+  families: z.array(z.object({
+    name: z.string().trim().min(1).max(100),
+    max_photos: z.number().int().min(1).max(100),
+  }).strict()).min(1).max(500),
+}).strict().refine((data) => new Date(data.reveal_at) >= new Date(eventSchedule(data.starts_at).min_reveal_at), {
+  message: "El reveal debe ser desde las 12:00 del segundo día posterior al evento", path: ["reveal_at"],
+});
+
 export function argentinaInput(value: string | null) {
   if (!value) return "";
   const date = new Date(value);

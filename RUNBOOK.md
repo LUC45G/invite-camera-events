@@ -30,6 +30,19 @@ Las pruebas usan PostgreSQL aislado en memoria y Cloudinary simulado.
 El seed/reset de las secciones siguientes corresponde al flujo manual anterior
 y al desarrollo; no usar reset para migrar un evento que se quiera conservar.
 
+### Instalación vacía desde el admin
+
+Después de `npm run db:migrate`, entrar a `/admin` y autenticarse. El asistente
+pide nombre del evento (visible solo en admin), inicio y reveal en horario de
+Argentina, cupo predeterminado y familias iniciales. Revisar sus nombres y
+cupos en la tabla, confirmar el resumen y crear. Los enlaces y QR quedan en
+el panel. Redeploy no vuelve a crear el evento ni modifica sus tokens.
+
+En esta entrega está habilitada la modalidad de invitaciones por familia.
+El modo QR único y los controles automáticos de ventana se incorporan en los
+tickets siguientes. La configuración guarda la ventana, pero la carga todavía
+se controla con el interruptor manual hasta implementar el ticket de horarios.
+
 1. Abrir Neon → SQL Editor.
 2. Pegar y ejecutar `db/schema.sql` (idempotente).
 3. Editar las variables al inicio de `db/seed.sql` y ejecutarlo.

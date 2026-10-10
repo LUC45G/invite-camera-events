@@ -25,7 +25,7 @@ const eventSchema = z.object({
   upload_open: z.boolean().optional(),
   projection_enabled: z.boolean().optional(),
   max_photos_per_session: z.number().int().min(1).max(100).optional(),
-});
+}).strict();
 
 function unauthorized() {
   return NextResponse.json({ error: "No autorizado" }, { status: 401 });

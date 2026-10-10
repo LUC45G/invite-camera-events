@@ -21,7 +21,7 @@ type Photo = {
   created_at: string;
 };
 
-export function AdminModeration({ slug }: { slug: string }) {
+export function AdminModeration({ slug, eventName }: { slug: string; eventName: string }) {
   const [notification, setNotification] = useState<string | null>(null);
   const [speedDraft, setSpeedDraft] = useState<number | null>(null);
   const [busyPhoto, setBusyPhoto] = useState<string | null>(null);
@@ -142,6 +142,7 @@ export function AdminModeration({ slug }: { slug: string }) {
       <header className="mx-auto mb-6 flex max-w-5xl flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl text-ink">Admin</h1>
+          <p className="mt-1 text-base text-ink">{eventName}</p>
           <p className="font-sans text-sm text-ink/55">
             {stats.pending ?? 0} pendientes · {stats.approved ?? 0} aprobadas ·{" "}
             {stats.rejected ?? 0} rechazadas

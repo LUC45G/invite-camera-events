@@ -68,7 +68,7 @@ export async function POST(request: Request) {
   const limit = Number(tableRows[0]?.max_photos ?? event.max_photos_per_session ?? 24);
   if (uploaded >= limit) {
     return NextResponse.json(
-      { error: "Esta mesa alcanzó el límite de fotos" },
+      { error: "Esta familia alcanzó el límite de fotos" },
       { status: 409 },
     );
   }

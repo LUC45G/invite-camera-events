@@ -70,7 +70,7 @@ export function CameraUploader({ slug, qr }: Props) {
     await startCamera();
   }
 
-  // Mesa sin RSVP aceptado: vuelve a la invitación con aviso, sin cámara.
+  // Familia sin RSVP aceptado: vuelve a la invitación con aviso, sin cámara.
   function redirectToInvitation() {
     window.location.href = `/${slug}?token=${qr}&notice=camera-blocked`;
   }
@@ -109,7 +109,7 @@ export function CameraUploader({ slug, qr }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qr, slug]);
 
-  // El usuario acepta vincular este dispositivo a la mesa.
+  // El usuario acepta vincular este dispositivo a la familia.
   async function confirmLink() {
     setConfirming(true);
     try {
@@ -290,7 +290,7 @@ export function CameraUploader({ slug, qr }: Props) {
         </Link>
         {tableNumber !== null ? (
           <span className="font-sans text-xs tracking-[0.2em] text-ink/55 uppercase">
-            Mesa {tableNumber}
+            Familia {tableNumber}
             {remaining !== null ? ` · ${remaining} restantes` : ""}
           </span>
         ) : (
@@ -310,7 +310,7 @@ export function CameraUploader({ slug, qr }: Props) {
         {phase === "confirm" && (
           <div className="flex max-w-[400px] flex-col items-center gap-4 text-center">
             <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
-              ¿Vincularse a la {tableName ?? `mesa ${tableNumber ?? ""}`}?
+              ¿Vincularse a la {tableName ?? `familia ${tableNumber ?? ""}`}?
             </h1>
             <div className="w-full text-left">
               <h2 className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">
@@ -335,7 +335,7 @@ export function CameraUploader({ slug, qr }: Props) {
               </p>
             </div>
             <p className="text-base text-ink/70 sm:text-lg">
-              Este dispositivo va a quedar ligado a esta mesa durante toda la
+              Este dispositivo va a quedar ligado a esta familia durante toda la
               fiesta para subir sus fotos.
             </p>
             <div className="flex gap-3">
@@ -364,8 +364,8 @@ export function CameraUploader({ slug, qr }: Props) {
               Dispositivo ya vinculado
             </h1>
             <p className="text-base text-ink/70 sm:text-lg">
-              Este dispositivo está ligado a la {tableName ?? `mesa ${tableNumber ?? ""}`}.
-              Pedí el QR de tu mesa para subir fotos.
+              Este dispositivo está ligado a la {tableName ?? `familia ${tableNumber ?? ""}`}.
+              Pedí el QR de tu familia para subir fotos.
             </p>
             <Link
               href={`/${slug}`}

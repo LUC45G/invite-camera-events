@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 
 type QrTable = { table_number: number; qr_token: string; guest_name: string | null; max_photos: number };
 
-// Plantilla del mensaje para WhatsApp. Variables: {nombre}, {mesa}, {link}.
+async function fetchTables(): Promise<QrTable[]> {
+  const response = await fetch("/api/admin/tables");
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error ?? "No se pudo cargar familias");
+  return data.tables ?? [];
+}
+
+// Plantilla del mensaje para WhatsApp. Variables: {nombre}, {familia}, {link}.
 // Editá el texto acá y listo — el link con token se genera solo.
 const MESSAGE_TEMPLATE = `Hola {nombre}! 💒
 
@@ -28,27 +35,35 @@ export function QrSection({ slug }: { slug: string }) {
   const qrUrl = (token: string) => `${base}/${slug}/upload?qr=${token}`;
   const inviteUrl = (token: string) => `${base}/${slug}?token=${token}`;
 
-  async function loadTables() {
+  const loadTables = useCallback(async () => {
     try {
-      const r = await fetch("/api/admin/tables");
-      const d = await r.json();
-      if (!r.ok) throw new Error(d.error ?? "No se pudo cargar mesas");
-      setTables(d.tables ?? []);
+      setTables(await fetchTables());
       setListError(null);
     } catch (e) {
-      setListError(e instanceof Error ? e.message : "No se pudo cargar mesas");
+      setListError(e instanceof Error ? e.message : "No se pudo cargar familias");
       setTables([]);
     }
-  }
+  }, []);
 
   useEffect(() => {
-    void loadTables();
-    // recarga cuando otro panel cambia mesas/nombres
+    let cancelled = false;
+    void fetchTables().then((families) => {
+      if (cancelled) return;
+      setTables(families);
+      setListError(null);
+    }).catch((error: unknown) => {
+      if (cancelled) return;
+      setListError(error instanceof Error ? error.message : "No se pudo cargar familias");
+      setTables([]);
+    });
+    // recarga cuando otro panel cambia familias/nombres
     const onChange = () => void loadTables();
     window.addEventListener("qr:tables-changed", onChange);
-    return () => window.removeEventListener("qr:tables-changed", onChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("qr:tables-changed", onChange);
+    };
+  }, [loadTables]);
 
   async function addTable() {
     setMutating(true);
@@ -56,17 +71,17 @@ export function QrSection({ slug }: { slug: string }) {
     try {
       const r = await fetch("/api/admin/tables", { method: "POST" });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error ?? "No se pudo agregar la mesa");
+      if (!r.ok) throw new Error(d.error ?? "No se pudo agregar la familia");
       await loadTables();
     } catch (e) {
-      setListError(e instanceof Error ? e.message : "No se pudo agregar la mesa");
+      setListError(e instanceof Error ? e.message : "No se pudo agregar la familia");
     } finally {
       setMutating(false);
     }
   }
 
   async function removeTable(table_number: number) {
-    if (!confirm(`¿Eliminar la mesa ${table_number}?`)) return;
+    if (!confirm(`¿Eliminar la familia ${table_number}?`)) return;
     setMutating(true);
     setListError(null);
     try {
@@ -76,10 +91,10 @@ export function QrSection({ slug }: { slug: string }) {
         body: JSON.stringify({ table_number }),
       });
       const d = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(d.error ?? "No se pudo eliminar la mesa");
+      if (!r.ok) throw new Error(d.error ?? "No se pudo eliminar la familia");
       await loadTables();
     } catch (e) {
-      setListError(e instanceof Error ? e.message : "No se pudo eliminar la mesa");
+      setListError(e instanceof Error ? e.message : "No se pudo eliminar la familia");
     } finally {
       setMutating(false);
     }
@@ -152,8 +167,8 @@ export function QrSection({ slug }: { slug: string }) {
   }
 
   function buildMessage(table: QrTable) {
-    return MESSAGE_TEMPLATE.replaceAll("{nombre}", table.guest_name ?? `Mesa ${table.table_number}`)
-      .replaceAll("{mesa}", String(table.table_number))
+    return MESSAGE_TEMPLATE.replaceAll("{nombre}", table.guest_name ?? `Familia ${table.table_number}`)
+      .replaceAll("{familia}", String(table.table_number))
       .replaceAll("{link}", inviteUrl(table.qr_token));
   }
 
@@ -168,7 +183,7 @@ export function QrSection({ slug }: { slug: string }) {
     if (!selected || !qrImage) return;
     const a = document.createElement("a");
     a.href = qrImage;
-    a.download = `qr-mesa-${selected.table_number}.png`;
+    a.download = `qr-familia-${selected.table_number}.png`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -176,7 +191,7 @@ export function QrSection({ slug }: { slug: string }) {
 
   function printSelected() {
     if (!selected || !qrImage) return;
-    const title = `QR Mesa ${selected.table_number}`.replace(/[<>&"]/g, "");
+    const title = `QR Familia ${selected.table_number}`.replace(/[<>&"]/g, "");
     const url = qrUrl(selected.qr_token);
     const printWindow = window.open("", "_blank", "width=640,height=760");
     if (!printWindow) {
@@ -206,7 +221,7 @@ p { font-size: 14px; word-break: break-all; }
   return (
     <CollapsibleSection
       title="QRs e invitaciones"
-      count={`${tables.length} mesas`}
+      count={`${tables.length} familias`}
       defaultOpen={false}
       actions={
         <button
@@ -215,7 +230,7 @@ p { font-size: 14px; word-break: break-all; }
           disabled={mutating}
           className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory disabled:opacity-60"
         >
-          {mutating ? "…" : "＋ Mesa"}
+          {mutating ? "…" : "＋ Familia"}
         </button>
       }
     >
@@ -232,12 +247,12 @@ p { font-size: 14px; word-break: break-all; }
             >
               <div className="min-w-0">
                 <p className="font-sans text-base text-ink">
-                  Mesa {t.table_number}
+                  Familia {t.table_number}
                   <button
                     type="button"
                     onClick={() => removeTable(t.table_number)}
                     disabled={mutating}
-                    aria-label={`Eliminar mesa ${t.table_number}`}
+                    aria-label={`Eliminar familia ${t.table_number}`}
                     className="ml-2 text-sm text-ink/40 hover:text-ink disabled:opacity-60"
                   >
                     ×
@@ -277,7 +292,7 @@ p { font-size: 14px; word-break: break-all; }
                   onClick={() => openQr(t)}
                   className="flex-1 rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory"
                 >
-                  QR mesa
+                  QR familia
                 </button>
               </div>
             </div>
@@ -300,7 +315,7 @@ p { font-size: 14px; word-break: break-all; }
               id="qr-modal-title"
               className="font-serif text-3xl text-ink"
             >
-              QR Mesa {selected.table_number}
+              QR Familia {selected.table_number}
             </h3>
             <p className="mt-1 break-all font-mono text-xs text-ink/55">
               {qrUrl(selected.qr_token)}
@@ -318,7 +333,7 @@ p { font-size: 14px; word-break: break-all; }
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={qrImage}
-                  alt={`Código QR de la mesa ${selected.table_number}`}
+                  alt={`Código QR de la familia ${selected.table_number}`}
                   className="h-64 w-64"
                 />
               )}

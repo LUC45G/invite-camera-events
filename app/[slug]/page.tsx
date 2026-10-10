@@ -11,6 +11,7 @@ import { Stagger } from "@/components/Stagger";
 import { FaqItem } from "@/components/FaqItem";
 import { Timeline } from "@/components/Timeline";
 import { SectionDecor } from "@/components/SectionDecor";
+import { getEventBySlug } from "@/lib/upload-db";
 
 type Props = PageProps<"/[slug]">;
 
@@ -18,6 +19,8 @@ export default async function Page({ params, searchParams }: Props) {
   const { slug } = await params;
   const event = getEvent(slug);
   if (!event) return notFound();
+  const configuredEvent = await getEventBySlug(slug);
+  const startsAt = configuredEvent?.starts_at ?? event.weddingTimestamp;
 
   const query = await searchParams;
   const token = typeof query.token === "string" ? query.token : "";
@@ -35,7 +38,7 @@ export default async function Page({ params, searchParams }: Props) {
             role="alert"
             className="mb-6 max-w-md rounded-sm border border-bronze bg-bronze/10 px-4 py-3 font-sans text-base text-ink"
           >
-            Para usar la cámara de tu mesa, primero confirmá tu asistencia acá abajo.
+            Para usar la cámara de tu familia, primero confirmá tu asistencia acá abajo.
           </p>
         )}
         <Stagger delay={0}>
@@ -50,12 +53,14 @@ export default async function Page({ params, searchParams }: Props) {
         </Stagger>
         <Stagger delay={300}>
           <p className="mt-4 font-sans text-lg text-ink/70 sm:text-xl">
-            {event.date}
+            {configuredEvent?.starts_at
+              ? new Date(configuredEvent.starts_at).toLocaleDateString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", weekday: "long", day: "numeric", month: "long", year: "numeric" })
+              : event.date}
           </p>
         </Stagger>
         <Stagger delay={450}>
           <div className="mt-8">
-            <Countdown target={event.weddingTimestamp} />
+            <Countdown target={startsAt} />
           </div>
         </Stagger>
         <Stagger delay={600}>

@@ -260,7 +260,7 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
         <table className="w-full text-left font-sans text-sm">
           <thead className="sticky top-0 bg-ivory">
             <tr className="text-xs tracking-[0.12em] text-ink/55 uppercase">
-              <th className="px-3 py-2">Mesa</th>
+              <th className="px-3 py-2">Familia</th>
               <th className="px-3 py-2">Familia</th>
               <th className="px-3 py-2">Estado</th>
               <th className="px-3 py-2">Personas</th>
@@ -269,7 +269,7 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={`${row.table_number ?? "sin-mesa"}-${row.name ?? "sin-nombre"}`} className="border-t border-ink/10">
+              <tr key={`${row.table_number ?? "sin-familia"}-${row.name ?? "sin-nombre"}`} className="border-t border-ink/10">
                 <td className="px-3 py-2">{row.table_number ?? "—"}</td>
                 <td className="px-3 py-2">
                   {editingTable === row.table_number ? (
@@ -316,7 +316,7 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
                     onChange={(e) =>
                       row.table_number !== null && void saveStatus(row.table_number, e.target.value)
                     }
-                    aria-label={`Estado de mesa ${row.table_number ?? ""}`}
+                    aria-label={`Estado de familia ${row.table_number ?? ""}`}
                     className="rounded-sm border border-ink/20 bg-ivory px-1.5 py-0.5 text-sm text-ink disabled:opacity-60"
                   >
                     <option value="pending">Pendiente</option>

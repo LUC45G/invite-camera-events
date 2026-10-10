@@ -23,17 +23,21 @@ export const retainedSetupSchema = z.object({
   return new Date(data.reveal_at) >= new Date(eventSchedule(data.starts_at).min_reveal_at);
 }, { message: "El reveal debe ser desde las 12:00 del segundo día posterior al evento", path: ["reveal_at"] });
 
-export const newEventSetupSchema = z.object({
+const setupFields = {
   name: z.string().trim().min(1).max(255),
   starts_at: z.string().datetime({ offset: true }),
   reveal_at: z.string().datetime({ offset: true }),
-  access_mode: z.literal("invitations"),
   max_photos_per_session: z.number().int().min(1).max(100),
+};
+
+export const newEventSetupSchema = z.discriminatedUnion("access_mode", [z.object({
+  ...setupFields,
+  access_mode: z.literal("invitations"),
   families: z.array(z.object({
     name: z.string().trim().min(1).max(100),
     max_photos: z.number().int().min(1).max(100),
   }).strict()).min(1).max(500),
-}).strict().refine((data) => new Date(data.reveal_at) >= new Date(eventSchedule(data.starts_at).min_reveal_at), {
+}).strict(), z.object({ ...setupFields, access_mode: z.literal("public_qr") }).strict()]).refine((data) => new Date(data.reveal_at) >= new Date(eventSchedule(data.starts_at).min_reveal_at), {
   message: "El reveal debe ser desde las 12:00 del segundo día posterior al evento", path: ["reveal_at"],
 });
 

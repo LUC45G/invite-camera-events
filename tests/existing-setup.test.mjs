@@ -18,6 +18,7 @@ test.before(async () => {
   const schema = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', "");
   await db.exec(schema);
   await db.exec(migration);
+  await db.exec(readFileSync(new URL("../db/migrations/003-public-upload-sessions.sql", import.meta.url), "utf8"));
 });
 test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE");

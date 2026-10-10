@@ -22,6 +22,7 @@ test.before(async () => {
   await db.exec(schema);
   await db.exec(readFileSync(new URL("../db/migrations/001-event-setup.sql", import.meta.url), "utf8"));
   await db.exec(migration2);
+  await db.exec(readFileSync(new URL("../db/migrations/003-public-upload-sessions.sql", import.meta.url), "utf8"));
 });
 test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE");

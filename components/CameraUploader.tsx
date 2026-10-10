@@ -2,14 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-type Props = { slug: string; qr: string };
+type Props = { slug: string; qr: string; accessMode: "invitations" | "public_qr" };
 
 type Phase = "starting" | "confirm" | "locked" | "camera" | "preview" | "uploading" | "done";
 
 const SESSION_KEY = "upload_session_token";
 
-export function CameraUploader({ slug, qr }: Props) {
+export function CameraUploader({ slug, qr, accessMode }: Props) {
+  const router = useRouter();
+  const storageKey = `${SESSION_KEY}:${slug}:${accessMode}`;
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -29,7 +32,7 @@ export function CameraUploader({ slug, qr }: Props) {
     const res = await fetch("/api/upload/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ ...body, slug, accessMode }),
     });
     const data = await res.json().catch(() => ({}));
     return { res, data } as {
@@ -39,6 +42,7 @@ export function CameraUploader({ slug, qr }: Props) {
         rsvpRequired?: boolean;
         confirm?: boolean;
         sessionToken?: string;
+        remaining?: number;
         tableNumber?: number;
         tableName?: string;
         lockedTable?: { tableNumber: number | null; tableName: string };
@@ -63,8 +67,9 @@ export function CameraUploader({ slug, qr }: Props) {
       setPhase("done");
       return;
     }
-    localStorage.setItem(`${SESSION_KEY}:${slug}`, data.sessionToken!);
+    localStorage.setItem(storageKey, data.sessionToken!);
     setSessionToken(data.sessionToken!);
+    setRemaining(data.remaining ?? null);
     setTableNumber(data.tableNumber ?? null);
     setTableName(data.tableName ?? null);
     await startCamera();
@@ -72,13 +77,13 @@ export function CameraUploader({ slug, qr }: Props) {
 
   // Familia sin RSVP aceptado: vuelve a la invitación con aviso, sin cámara.
   function redirectToInvitation() {
-    window.location.href = `/${slug}?token=${qr}&notice=camera-blocked`;
+    if (accessMode === "invitations") router.replace(`/${slug}?token=${qr}&notice=camera-blocked`);
   }
 
   // reanudar sesión ligada, o pedir confirmación de vinculación si es nueva
   useEffect(() => {
     (async () => {
-      const stored = localStorage.getItem(`${SESSION_KEY}:${slug}`);
+      const stored = localStorage.getItem(storageKey) ?? (accessMode === "invitations" ? localStorage.getItem(`${SESSION_KEY}:${slug}`) : null);
       try {
         if (stored) {
           await startLinkedSession(stored);
@@ -96,7 +101,12 @@ export function CameraUploader({ slug, qr }: Props) {
         }
         setTableNumber(data.tableNumber ?? null);
         setTableName(data.tableName ?? null);
-        setPhase("confirm");
+        if (accessMode === "public_qr" && data.sessionToken) {
+          localStorage.setItem(storageKey, data.sessionToken);
+          setSessionToken(data.sessionToken);
+          setRemaining(data.remaining ?? null);
+          await startCamera();
+        } else setPhase("confirm");
       } catch {
         setError("No hay conexión. Probá de nuevo.");
         setPhase("done");
@@ -107,7 +117,7 @@ export function CameraUploader({ slug, qr }: Props) {
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [qr, slug]);
+  }, [qr, slug, accessMode]);
 
   // El usuario acepta vincular este dispositivo a la familia.
   async function confirmLink() {
@@ -123,8 +133,9 @@ export function CameraUploader({ slug, qr }: Props) {
         setPhase("done");
         return;
       }
-      localStorage.setItem(`${SESSION_KEY}:${slug}`, data.sessionToken!);
+      localStorage.setItem(storageKey, data.sessionToken!);
       setSessionToken(data.sessionToken!);
+      setRemaining(data.remaining ?? null);
       setTableNumber(data.tableNumber ?? null);
       setTableName(data.tableName ?? null);
       await startCamera();
@@ -274,20 +285,15 @@ export function CameraUploader({ slug, qr }: Props) {
     }
   }
 
-  const dismiss = useCallback(() => {
-    setPreviewBlob(null);
-    startCamera();
-  }, []);
-
   return (
     <div className="flex min-h-dvh flex-col bg-cream">
       <header className="flex items-center justify-between px-6 py-4">
-        <Link
+        {accessMode === "invitations" ? <Link
           href={`/${slug}`}
           className="font-sans text-sm tracking-[0.2em] text-bronze uppercase"
         >
           ← Invitación
-        </Link>
+        </Link> : <span className="font-sans text-sm tracking-[0.2em] text-bronze uppercase">Fotos del evento</span>}
         {tableNumber !== null ? (
           <span className="font-sans text-xs tracking-[0.2em] text-ink/55 uppercase">
             Familia {tableNumber}

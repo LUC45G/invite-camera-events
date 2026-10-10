@@ -11,13 +11,13 @@ export type GuestRsvp = {
 export async function isTokenValid(token: string): Promise<boolean> {
   if (!token) return false;
   const rows =
-    await sql`SELECT id FROM guests WHERE token = ${token} LIMIT 1`;
+    await sql`SELECT g.id FROM guests g JOIN events e ON e.id = g.event_id WHERE g.token = ${token} AND e.access_mode = 'invitations' LIMIT 1`;
   return rows.length > 0;
 }
 
 export async function findRsvp(token: string): Promise<GuestRsvp | undefined> {
   const rows =
-    await sql`SELECT name, rsvp_status, rsvp_guests, rsvp_dietary FROM guests WHERE token = ${token} LIMIT 1`;
+    await sql`SELECT g.name, g.rsvp_status, g.rsvp_guests, g.rsvp_dietary FROM guests g JOIN events e ON e.id = g.event_id WHERE g.token = ${token} AND e.access_mode = 'invitations' LIMIT 1`;
   const g = rows[0] as
     | { name: string | null; rsvp_status: string; rsvp_guests: number; rsvp_dietary: string | null }
     | undefined;
@@ -46,6 +46,7 @@ export async function saveRsvp(data: {
         rsvp_responded_at = now()
     WHERE token = ${data.token}
       AND rsvp_status = 'pending'
+      AND event_id IN (SELECT id FROM events WHERE access_mode = 'invitations')
     RETURNING id`;
   return rows.length > 0;
 }

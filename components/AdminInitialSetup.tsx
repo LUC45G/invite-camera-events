@@ -10,6 +10,7 @@ const inputClass = "min-w-0 rounded-sm border border-ink/20 bg-ivory px-3 py-2 t
 export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: string; slug: string }) {
   const router = useRouter();
   const [step, setStep] = useState(1);
+  const [mode, setMode] = useState<"invitations" | "public_qr">("invitations");
   const [name, setName] = useState("");
   const [starts, setStarts] = useState(argentinaInput(suggestedStart));
   const [reveal, setReveal] = useState(argentinaInput(eventSchedule(suggestedStart).min_reveal_at));
@@ -35,11 +36,11 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
     if (busy) return;
     try {
       if (new Date(argentinaInstant(reveal)) < new Date(schedule().min_reveal_at)) throw new Error("El reveal debe ser desde el mediodía del segundo día posterior al evento.");
-      if (step < 3) { setStep(step + 1); return; }
+      if (step < 3) { setStep(mode === "public_qr" ? 3 : step + 1); return; }
       setBusy(true);
       const response = await fetch("/api/admin/setup", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, starts_at: argentinaInstant(starts), reveal_at: argentinaInstant(reveal), access_mode: "invitations", max_photos_per_session: defaultLimit, families }),
+        body: JSON.stringify({ name, starts_at: argentinaInstant(starts), reveal_at: argentinaInstant(reveal), access_mode: mode, max_photos_per_session: defaultLimit, ...(mode === "invitations" ? { families } : {}) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "No se pudo crear el evento");
@@ -51,7 +52,7 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
   return <main className="admin-scroll min-h-dvh bg-cream px-6 py-10 sm:py-16">
     <div className="mx-auto max-w-3xl">
       <h1 className="font-serif text-4xl text-ink">Configurar el evento</h1>
-      <p className="mt-2 text-ink/70">Paso {step} de 3 · {step === 1 ? "Datos del evento" : step === 2 ? "Familias y QR" : "Revisar y crear"}</p>
+      <p className="mt-2 text-ink/70">Paso {mode === "public_qr" && step === 3 ? 2 : step} de {mode === "public_qr" ? 2 : 3} · {step === 1 ? "Datos del evento" : step === 2 ? "Familias y QR" : "Revisar y crear"}</p>
       <form onSubmit={submit} className="mt-8 flex flex-col gap-5">
         {step === 1 && <>
           <label className="flex flex-col gap-2">Nombre del evento<input required maxLength={255} value={name} onChange={(e) => setName(e.target.value)} className={inputClass} placeholder="Boda Daniela y Miguel" /></label>
@@ -68,8 +69,9 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
           }} className={`${inputClass} w-28`} /></label>
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-2">Modalidad</legend>
-            <label className="flex items-center gap-2"><input type="radio" name="mode" checked readOnly />Invitaciones por familia</label>
-            <label className="flex items-center gap-2 text-ink/50"><input type="radio" name="mode" disabled />QR único (próximamente)</label>
+            <label className="flex items-center gap-2"><input type="radio" name="mode" checked={mode === "invitations"} onChange={() => setMode("invitations")} />Invitaciones por familia</label>
+            <label className="flex items-center gap-2"><input type="radio" name="mode" checked={mode === "public_qr"} onChange={() => setMode("public_qr")} />QR único, sin invitaciones ni RSVP</label>
+            {mode === "public_qr" && <p className="text-sm text-ink/70">El cupo es por sesión del navegador. Borrar sus datos o usar otro navegador crea otra sesión; no identifica infaliblemente un dispositivo.</p>}
             <p className="text-sm text-ink/70">La modalidad no se puede cambiar después de crear el evento.</p>
           </fieldset>
         </>}
@@ -89,19 +91,21 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
         {step === 3 && <>
           <h2 className="font-serif text-2xl">{name}</h2>
           <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-6 gap-y-3">
-            <dt>Modalidad</dt><dd>Invitaciones por familia</dd>
+            <dt>Modalidad</dt><dd>{mode === "invitations" ? "Invitaciones por familia" : "QR único"}</dd>
             <dt>Inicio</dt><dd>{format(argentinaInstant(starts))}</dd>
             <dt>Carga de fotos</dt><dd>{format(schedule().upload_starts_at)} — {format(schedule().upload_ends_at)}</dd>
             <dt>Reveal</dt><dd>{format(argentinaInstant(reveal))}</dd>
             <dt>Cupo predeterminado</dt><dd>{defaultLimit} fotos</dd>
-            <dt>Familias / QR</dt><dd>{families.length}</dd>
+            <dt>{mode === "invitations" ? "Familias / QR" : "QR compartido"}</dt><dd>{mode === "invitations" ? families.length : 1}</dd>
           </dl>
-          <ul className="max-h-72 overflow-y-auto border-y border-ink/20 py-3">{families.map((f, i) => <li key={i} className="py-1">{i + 1}. {f.name} · {f.max_photos} fotos</li>)}</ul>
-          <p className="text-sm text-ink/70">Se crean todas las familias con sus enlaces y QR. La modalidad queda fijada; los cupos y familias quedan bloqueados desde la apertura de carga.</p>
+          {mode === "invitations" ? <>
+            <ul className="max-h-72 overflow-y-auto border-y border-ink/20 py-3">{families.map((f, i) => <li key={i} className="py-1">{i + 1}. {f.name} · {f.max_photos} fotos</li>)}</ul>
+            <p className="text-sm text-ink/70">Se crean todas las familias con sus enlaces y QR. La modalidad queda fijada; los cupos y familias quedan bloqueados desde la apertura de carga.</p>
+          </> : <p className="text-sm text-ink/70">Se crea un QR para todo el álbum, sin familias ni RSVP. Cada navegador tiene un cupo de {defaultLimit} fotos. La modalidad queda fijada.</p>}
         </>}
         {error && <p role="alert" className="text-ink">{error}</p>}
         <div className="flex flex-wrap gap-3">
-          {step > 1 && <button type="button" disabled={busy} onClick={() => { setStep(step - 1); setError(null); }} className="rounded-sm border border-ink/20 px-5 py-3">Volver</button>}
+          {step > 1 && <button type="button" disabled={busy} onClick={() => { setStep(mode === "public_qr" ? 1 : step - 1); setError(null); }} className="rounded-sm border border-ink/20 px-5 py-3">Volver</button>}
           <button disabled={busy} className="rounded-sm bg-bronze px-5 py-3 text-ivory disabled:opacity-50">{busy ? "Creando…" : step === 3 ? "Crear evento" : "Continuar"}</button>
         </div>
       </form>

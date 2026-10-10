@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/lib/env";
 import { signUpload } from "@/lib/cloudinary";
-import { sql } from "@/lib/db";
 import {
-  countPhotosForTable,
+  uploadAllowance,
   findSession,
   getEventById,
   touchSession,
@@ -46,22 +45,19 @@ export async function POST(request: Request) {
     );
   }
 
-  // Límite de fotos por familia (configurable por QR, default 24)
-  const uploaded = await countPhotosForTable(session.table_qr_id);
-  const tableRows = (await sql`SELECT max_photos FROM table_qrs WHERE id = ${session.table_qr_id} LIMIT 1`) as {
-    max_photos: number;
-  }[];
-  const limit = Number(tableRows[0]?.max_photos ?? event.max_photos_per_session ?? 24);
+  const allowance = await uploadAllowance(event, session);
+  if (!allowance) return NextResponse.json({ error: "Sesión inválida para este evento" }, { status: 403 });
+  const { uploaded, limit } = allowance;
   if (uploaded >= limit) {
     return NextResponse.json(
-      { error: "Esta familia alcanzó el límite de fotos" },
+      { error: event.access_mode === "public_qr" ? "Alcanzaste el límite de fotos" : "Esta familia alcanzó el límite de fotos" },
       { status: 409 },
     );
   }
 
   await touchSession(session.id);
 
-  const folder = `weddings/${event.slug}/table`;
+  const folder = `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
   const { timestamp, signature, apiKey } = signUpload(folder);
 
   return NextResponse.json({

@@ -44,7 +44,8 @@ export type TableQr = {
 export type UploadSession = {
   id: string;
   event_id: string;
-  table_qr_id: string;
+  table_qr_id: string | null;
+  access_mode: "invitations" | "public_qr";
   session_token: string;
   photo_count: number;
   first_seen_at: string;

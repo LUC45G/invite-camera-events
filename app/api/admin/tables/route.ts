@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
-import { getAdminEvent } from "@/lib/event-context";
+import { getAdminInvitationEvent as getAdminEvent } from "@/lib/event-context";
 
 export const dynamic = "force-dynamic";
 

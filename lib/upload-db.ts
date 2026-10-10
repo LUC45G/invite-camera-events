@@ -30,14 +30,33 @@ export async function findSession(
 
 export async function createSession(
   eventId: string,
-  tableQrId: string,
+  tableQrId: string | null,
+  accessMode: Event["access_mode"] = "invitations",
 ): Promise<UploadSession> {
   const sessionToken = randomBytes(32).toString("hex");
   const rows = await sql`
-    INSERT INTO upload_sessions (event_id, table_qr_id, session_token)
-    VALUES (${eventId}, ${tableQrId}, ${sessionToken})
+    INSERT INTO upload_sessions (event_id, table_qr_id, session_token, access_mode)
+    VALUES (${eventId}, ${tableQrId}, ${sessionToken}, ${accessMode})
     RETURNING *`;
   return rows[0] as UploadSession;
+}
+
+export async function findPublicQr(qrToken: string): Promise<Event | null> {
+  const rows = await sql`SELECT * FROM events WHERE public_qr_token = ${qrToken} AND access_mode = 'public_qr' LIMIT 1`;
+  return (rows[0] as Event) ?? null;
+}
+
+// Both signing and completion must validate the session's event and mode.
+export async function uploadAllowance(event: Event, session: UploadSession) {
+  if (session.event_id !== event.id || (session.access_mode ?? "invitations") !== event.access_mode) return null;
+  if (event.access_mode === "public_qr") {
+    if (session.table_qr_id !== null) return null;
+    return { uploaded: Number(session.photo_count), limit: event.max_photos_per_session };
+  }
+  if (!session.table_qr_id) return null;
+  const rows = await sql`SELECT max_photos FROM table_qrs WHERE id = ${session.table_qr_id} AND event_id = ${event.id} LIMIT 1`;
+  if (!rows[0]) return null;
+  return { uploaded: await countPhotosForTable(session.table_qr_id), limit: Number(rows[0].max_photos) };
 }
 
 export async function touchSession(sessionId: string): Promise<void> {

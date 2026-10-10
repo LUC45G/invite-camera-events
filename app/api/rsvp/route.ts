@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { findRsvp, saveRsvp } from "@/lib/rsvp-db";
+import { findRsvp, saveRsvp, isTokenValid } from "@/lib/rsvp-db";
 
 const rsvpSchema = z.object({
   token: z.string().min(10).max(64),
@@ -13,6 +13,7 @@ const rsvpSchema = z.object({
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const token = searchParams.get("token") ?? "";
+  if (!(await isTokenValid(token))) return NextResponse.json({ error: "Invitación inválida" }, { status: 403 });
   const existing = await findRsvp(token);
   return NextResponse.json({ responded: existing ?? null });
 }
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   }
 
   const { token, name, status, guests, dietary } = parsed.data;
+  if (!(await isTokenValid(token))) return NextResponse.json({ error: "Invitación inválida" }, { status: 403 });
 
   // saveRsvp falla si el token no existe o ya respondió (WHERE rsvp_status = 'pending')
   const saved = await saveRsvp({

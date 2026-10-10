@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { QrSection } from "@/components/QrSection";
+import { PublicQrPanel } from "@/components/PublicQrPanel";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import {
   AdminDangerPanel,
@@ -21,7 +22,9 @@ type Photo = {
   created_at: string;
 };
 
-export function AdminModeration({ slug, eventName }: { slug: string; eventName: string }) {
+export function AdminModeration({ slug, eventName, accessMode, publicToken, sessionLimit }: {
+  slug: string; eventName: string; accessMode: "invitations" | "public_qr"; publicToken: string | null; sessionLimit: number;
+}) {
   const [notification, setNotification] = useState<string | null>(null);
   const [speedDraft, setSpeedDraft] = useState<number | null>(null);
   const [busyPhoto, setBusyPhoto] = useState<string | null>(null);
@@ -386,10 +389,10 @@ export function AdminModeration({ slug, eventName }: { slug: string; eventName: 
         <AdminStoragePanel slug={slug} />
 
         {/* 4. QRs */}
-        <QrSection slug={slug} />
+        {accessMode === "invitations" ? <QrSection slug={slug} /> : publicToken && <PublicQrPanel slug={slug} token={publicToken} limit={sessionLimit} />}
 
         {/* 5. Invitados */}
-        <AdminRsvpPanel slug={slug} />
+        {accessMode === "invitations" && <AdminRsvpPanel slug={slug} />}
 
         {/* 6. Evento y Reveal */}
         <AdminEventSettings slug={slug} />

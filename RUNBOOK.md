@@ -34,13 +34,19 @@ y al desarrollo; no usar reset para migrar un evento que se quiera conservar.
 
 Después de `npm run db:migrate`, entrar a `/admin` y autenticarse. El asistente
 pide nombre del evento (visible solo en admin), inicio y reveal en horario de
-Argentina, cupo predeterminado y familias iniciales. Revisar sus nombres y
-cupos en la tabla, confirmar el resumen y crear. Los enlaces y QR quedan en
+Argentina, cupo predeterminado y modalidad. Con invitaciones, revisar las
+familias iniciales, sus nombres y cupos en la tabla; con QR único, se omite
+la tabla de familias. Confirmar el resumen y crear. Los enlaces y QR quedan en
 el panel. Redeploy no vuelve a crear el evento ni modifica sus tokens.
 
-En esta entrega está habilitada la modalidad de invitaciones por familia.
-El modo QR único y los controles automáticos de ventana se incorporan en los
-tickets siguientes. La configuración guarda la ventana, pero la carga todavía
+Ambas modalidades están habilitadas. Con QR único, compartir el enlace o
+descargar/imprimir el QR desde admin: entra directamente a cámara, sin RSVP,
+y cada sesión de navegador tiene un cupo independiente. Borrar datos del
+navegador o usar otro permite crear otra sesión. La ruta principal /<slug>
+responde 404 en este modo; /upload, /galeria y /live siguen disponibles.
+
+Los controles automáticos de ventana se incorporan en el ticket 07.
+La configuración guarda la ventana, pero la carga todavía
 se controla con el interruptor manual hasta implementar el ticket de horarios.
 
 1. Abrir Neon → SQL Editor.

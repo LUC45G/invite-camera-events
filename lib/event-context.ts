@@ -12,3 +12,8 @@ export async function getAdminEvent(requestedSlug?: string | null, allowPending 
   if (!allowPending && event && (event.setup_complete === false || event.deletion_pending)) return null;
   return event;
 }
+
+export async function getAdminInvitationEvent(requestedSlug?: string | null): Promise<Event | null> {
+  const event = await getAdminEvent(requestedSlug);
+  return event?.access_mode === "public_qr" ? null : event;
+}

@@ -45,7 +45,8 @@ export async function PUT(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
   const data = parsed.data;
   const schedule = eventSchedule(data.starts_at);
-  const families = data.families.map((f, i) => ({
+  const publicToken = data.access_mode === "public_qr" ? randomBytes(32).toString("hex") : null;
+  const families = (data.access_mode === "invitations" ? data.families : []).map((f, i) => ({
     number: i + 1, name: f.name, max_photos: f.max_photos, token: randomBytes(32).toString("hex"),
   }));
   // One statement: all records commit together, or none do. The installation
@@ -55,9 +56,9 @@ export async function PUT(request: Request) {
     rows = await sql`
     WITH created_event AS (
       INSERT INTO events (name, slug, access_mode, starts_at, reveal_at,
-        upload_starts_at, upload_ends_at, max_photos_per_session, setup_complete)
-      VALUES (${data.name}, ${weddingEvent.slug}, 'invitations', ${data.starts_at}, ${data.reveal_at},
-        ${schedule.upload_starts_at}, ${schedule.upload_ends_at}, ${data.max_photos_per_session}, true)
+        upload_starts_at, upload_ends_at, max_photos_per_session, setup_complete, public_qr_token)
+      VALUES (${data.name}, ${weddingEvent.slug}, ${data.access_mode}, ${data.starts_at}, ${data.reveal_at},
+        ${schedule.upload_starts_at}, ${schedule.upload_ends_at}, ${data.max_photos_per_session}, true, ${publicToken})
       ON CONFLICT DO NOTHING RETURNING id, slug
     ), created_families AS (
       INSERT INTO table_qrs (event_id, table_number, qr_token, max_photos)

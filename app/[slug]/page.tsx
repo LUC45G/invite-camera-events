@@ -20,6 +20,7 @@ export default async function Page({ params, searchParams }: Props) {
   const event = getEvent(slug);
   if (!event) return notFound();
   const configuredEvent = await getEventBySlug(slug);
+  if (configuredEvent?.access_mode === "public_qr") return notFound();
   const startsAt = configuredEvent?.starts_at ?? event.weddingTimestamp;
 
   const query = await searchParams;

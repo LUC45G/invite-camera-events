@@ -35,7 +35,7 @@ export default async function AdminPage() {
 
   return (
     <div className="admin-scroll">
-      <AdminModeration slug={event.slug} eventName={event.name} />
+      <AdminModeration slug={event.slug} eventName={event.name} accessMode={event.access_mode} publicToken={event.public_qr_token} sessionLimit={event.max_photos_per_session} />
     </div>
   );
 }

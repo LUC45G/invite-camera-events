@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { argentinaInput, argentinaInstant, eventSchedule } from "@/lib/setup-policy";
+import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, familyInvitationLink } from "@/lib/invitation-message";
+import { InvitationSettingsFields } from "@/components/InvitationSettingsFields";
+import { useBrowserOrigin } from "@/components/useBrowserOrigin";
 
 type Props = {
-  event: { name: string; slug: string; reveal_at: string | null; deletion_pending: boolean };
+  event: { name: string; slug: string; reveal_at: string | null; deletion_pending: boolean; access_mode: "invitations" | "public_qr"; invitation_message: string | null; invitation_contact: string | null };
   suggestedStart: string;
   counts: { photos: number; families: number; sessions: number; guests: number };
 };
@@ -19,6 +22,9 @@ export function AdminExistingSetup({ event, suggestedStart, counts }: Props) {
   const [confirmation, setConfirmation] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState(event.invitation_message ?? DEFAULT_INVITATION_MESSAGE);
+  const [contact, setContact] = useState(event.invitation_contact ?? DEFAULT_INVITATION_CONTACT);
+  const origin = useBrowserOrigin();
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -29,6 +35,7 @@ export function AdminExistingSetup({ event, suggestedStart, counts }: Props) {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify(choice === "delete" ? { slug: event.slug, confirmation } : {
           starts_at: argentinaInstant(starts), reveal_at: argentinaInstant(reveal),
+          ...(event.access_mode === "invitations" ? {invitation_message: message, invitation_contact: contact} : {}),
         }),
       });
       const data = await response.json();
@@ -49,11 +56,15 @@ export function AdminExistingSetup({ event, suggestedStart, counts }: Props) {
         <button onClick={() => setChoice("delete")} className="rounded-sm border border-ink/30 px-4 py-3">Eliminar y configurar de nuevo</button>
       </div> : <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
         {choice === "keep" ? <>
-          <p>Se conservan tus fotos, familias, tokens, RSVP y cupos. La modalidad sigue siendo invitaciones por familia.</p>
+          <p>Se conservan tus fotos, familias, tokens, RSVP y cupos. La modalidad no cambia.</p>
           <label className="flex flex-col gap-2">Fecha y hora de inicio (Argentina)<input type="datetime-local" required value={starts} onChange={(e) => setStarts(e.target.value)} className="rounded-sm border border-ink/20 bg-ivory p-3" /></label>
           <label className="flex flex-col gap-2">Fecha y hora de reveal (Argentina)<input type="datetime-local" required value={reveal} onChange={(e) => setReveal(e.target.value)} className="rounded-sm border border-ink/20 bg-ivory p-3" /></label>
           <p className="text-sm text-ink/70">El reveal debe ser desde el mediodía del segundo día posterior al evento. Confirmá la fecha sugerida; el contenido de la invitación sigue en código.</p>
           <p className="text-sm text-ink/70">El consumo anterior se reconstruye con fotos y sesiones disponibles. No se pueden recuperar cargas borradas sin historial.</p>
+          {event.access_mode === "invitations" && <>
+            <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={busy} previewName="Familia de ejemplo" previewLink={familyInvitationLink(origin, event.slug, "token-de-ejemplo")} />
+            <p className="text-sm text-ink/60">La vista previa usa un enlace de ejemplo. Se conservan los tokens y enlaces reales de tus familias.</p>
+          </>}
         </> : <>
           <p>Borra todas las fotos del evento en Cloudinary y sus datos. Los enlaces y QR actuales dejan de funcionar. Esta acción no se puede deshacer.</p>
           {event.deletion_pending && <p role="alert">Hay un borrado pendiente. Reintentá para completar la limpieza; se conservan las referencias.</p>}

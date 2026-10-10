@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, invitationMessageSchema, invitationContactSchema } from "./invitation-message";
 
 export const EVENT_TIME_ZONE = "America/Argentina/Buenos_Aires";
 
@@ -19,6 +20,8 @@ export function eventSchedule(startsAt: string) {
 export const retainedSetupSchema = z.object({
   starts_at: z.string().datetime({ offset: true }),
   reveal_at: z.string().datetime({ offset: true }),
+  invitation_message: invitationMessageSchema.optional(),
+  invitation_contact: invitationContactSchema.optional(),
 }).strict().refine((data) => {
   return new Date(data.reveal_at) >= new Date(eventSchedule(data.starts_at).min_reveal_at);
 }, { message: "El reveal debe ser desde las 12:00 del segundo día posterior al evento", path: ["reveal_at"] });
@@ -33,6 +36,8 @@ const setupFields = {
 export const newEventSetupSchema = z.discriminatedUnion("access_mode", [z.object({
   ...setupFields,
   access_mode: z.literal("invitations"),
+  invitation_message: invitationMessageSchema.default(DEFAULT_INVITATION_MESSAGE),
+  invitation_contact: invitationContactSchema.default(DEFAULT_INVITATION_CONTACT),
   families: z.array(z.object({
     name: z.string().trim().min(1).max(100),
     max_photos: z.number().int().min(1).max(100),

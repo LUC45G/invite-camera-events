@@ -3,7 +3,7 @@ import test from "node:test";
 import { readFileSync } from "node:fs";
 import { PGlite } from "@electric-sql/pglite";
 import { state, request } from "./helpers/setup-environment.mjs";
-import { eventSchedule } from "../lib/setup-policy.ts";
+const { eventSchedule } = await import("../lib/setup-policy.ts");
 
 const setup = await import("../app/api/admin/setup/route.ts");
 const wipe = await import("../app/api/admin/wipe/route.ts");
@@ -19,6 +19,7 @@ test.before(async () => {
   await db.exec(schema);
   await db.exec(migration);
   await db.exec(readFileSync(new URL("../db/migrations/003-public-upload-sessions.sql", import.meta.url), "utf8"));
+  await db.exec(readFileSync(new URL("../db/migrations/004-invitation-message-contact.sql", import.meta.url), "utf8"));
 });
 test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE");

@@ -28,7 +28,7 @@ const openSession = (extra = {}) => sessions.POST(request({qr: event.public_qr_t
 test.before(async () => {
   state.db = db;
   await db.exec(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', ""));
-  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql"]) {
+  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql"]) {
     await db.exec(readFileSync(new URL(`../db/migrations/${filename}`, import.meta.url), "utf8"));
   }
 });

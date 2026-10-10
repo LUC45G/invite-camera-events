@@ -20,10 +20,15 @@ export async function POST(request: Request) {
   }
   const result = retainedSetupSchema.safeParse(body);
   if (!result.success) return NextResponse.json({ error: result.error.issues[0].message }, { status: 400 });
+  if (event.access_mode !== "invitations" && (result.data.invitation_message !== undefined || result.data.invitation_contact !== undefined)) {
+    return NextResponse.json({error: "Este evento no usa invitaciones"}, {status: 400});
+  }
   const schedule = eventSchedule(result.data.starts_at);
   const rows = await sql`
     UPDATE events SET starts_at = ${result.data.starts_at}, reveal_at = ${result.data.reveal_at},
       upload_starts_at = ${schedule.upload_starts_at}, upload_ends_at = ${schedule.upload_ends_at},
+      invitation_message = COALESCE(${result.data.invitation_message ?? null}, invitation_message),
+      invitation_contact = COALESCE(${result.data.invitation_contact ?? null}, invitation_contact),
       setup_complete = true
     WHERE id = ${event.id} AND setup_complete = false AND deletion_pending = false
     RETURNING id
@@ -46,6 +51,8 @@ export async function PUT(request: Request) {
   const data = parsed.data;
   const schedule = eventSchedule(data.starts_at);
   const publicToken = data.access_mode === "public_qr" ? randomBytes(32).toString("hex") : null;
+  const invitationMessage = data.access_mode === "invitations" ? data.invitation_message : null;
+  const invitationContact = data.access_mode === "invitations" ? data.invitation_contact : null;
   const families = (data.access_mode === "invitations" ? data.families : []).map((f, i) => ({
     number: i + 1, name: f.name, max_photos: f.max_photos, token: randomBytes(32).toString("hex"),
   }));
@@ -56,9 +63,9 @@ export async function PUT(request: Request) {
     rows = await sql`
     WITH created_event AS (
       INSERT INTO events (name, slug, access_mode, starts_at, reveal_at,
-        upload_starts_at, upload_ends_at, max_photos_per_session, setup_complete, public_qr_token)
+        upload_starts_at, upload_ends_at, max_photos_per_session, setup_complete, public_qr_token, invitation_message, invitation_contact)
       VALUES (${data.name}, ${weddingEvent.slug}, ${data.access_mode}, ${data.starts_at}, ${data.reveal_at},
-        ${schedule.upload_starts_at}, ${schedule.upload_ends_at}, ${data.max_photos_per_session}, true, ${publicToken})
+        ${schedule.upload_starts_at}, ${schedule.upload_ends_at}, ${data.max_photos_per_session}, true, ${publicToken}, ${invitationMessage}, ${invitationContact})
       ON CONFLICT DO NOTHING RETURNING id, slug
     ), created_families AS (
       INSERT INTO table_qrs (event_id, table_number, qr_token, max_photos)

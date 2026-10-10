@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, invitationSettingsSchema, familyInvitationLink, renderInvitationMessage } from "@/lib/invitation-message";
+import { InvitationSettingsFields } from "@/components/InvitationSettingsFields";
+import { useBrowserOrigin } from "@/components/useBrowserOrigin";
 
 type QrTable = { table_number: number; qr_token: string; guest_name: string | null; max_photos: number };
 
@@ -13,16 +16,13 @@ async function fetchTables(): Promise<QrTable[]> {
   return data.tables ?? [];
 }
 
-// Plantilla del mensaje para WhatsApp. Variables: {nombre}, {familia}, {link}.
-// Editá el texto acá y listo — el link con token se genera solo.
-const MESSAGE_TEMPLATE = `Hola {nombre}! 💒
-
-Daniela & Miguel se casan y queremos que seas parte.
-Confirmá tu asistencia acá: {link}
-
-¡Te esperamos!`;
-
-export function QrSection({ slug }: { slug: string }) {
+export function QrSection({ slug, invitationMessage, invitationContact }: { slug: string; invitationMessage?: string | null; invitationContact?: string | null }) {
+  const [savedMessage, setSavedMessage] = useState(invitationMessage ?? DEFAULT_INVITATION_MESSAGE);
+  const [message, setMessage] = useState(savedMessage);
+  const [contact, setContact] = useState(invitationContact ?? DEFAULT_INVITATION_CONTACT);
+  const [previewNumber, setPreviewNumber] = useState<number | null>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsNotice, setSettingsNotice] = useState<string | null>(null);
   const [tables, setTables] = useState<QrTable[] | null>(null);
   const [selected, setSelected] = useState<QrTable | null>(null);
   const [qrImage, setQrImage] = useState<string | null>(null);
@@ -31,9 +31,26 @@ export function QrSection({ slug }: { slug: string }) {
   const [mutating, setMutating] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const base = typeof window !== "undefined" ? window.location.origin : "";
+  const base = useBrowserOrigin();
   const qrUrl = (token: string) => `${base}/${slug}/upload?qr=${token}`;
-  const inviteUrl = (token: string) => `${base}/${slug}?token=${token}`;
+  const inviteUrl = (token: string) => familyInvitationLink(base, slug, token);
+
+  async function saveSettings(event: React.FormEvent) {
+    event.preventDefault();
+    if (savingSettings) return;
+    setSettingsNotice(null);
+    const parsed = invitationSettingsSchema.safeParse({invitation_message: message, invitation_contact: contact});
+    if (!parsed.success) { setSettingsNotice(parsed.error.issues[0].message); return; }
+    setSavingSettings(true);
+    try {
+      const response = await fetch("/api/admin/invitation", {method: "PUT", headers: {"Content-Type": "application/json"}, body: JSON.stringify(parsed.data)});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error ?? "No se pudo guardar la invitación");
+      setSavedMessage(data.invitation_message); setMessage(data.invitation_message); setContact(data.invitation_contact);
+      setSettingsNotice("Mensaje y contacto guardados. Los enlaces y QR se conservan.");
+    } catch (error) { setSettingsNotice(error instanceof Error ? error.message : "No se pudo guardar la invitación"); }
+    finally { setSavingSettings(false); }
+  }
 
   const loadTables = useCallback(async () => {
     try {
@@ -161,15 +178,14 @@ export function QrSection({ slug }: { slug: string }) {
   }, [selected]);
 
   if (!tables) return null;
+  const previewTable = tables.find((table) => table.table_number === previewNumber) ?? tables[0];
 
   function openQr(table: QrTable) {
     setSelected(table);
   }
 
   function buildMessage(table: QrTable) {
-    return MESSAGE_TEMPLATE.replaceAll("{nombre}", table.guest_name ?? `Familia ${table.table_number}`)
-      .replaceAll("{familia}", String(table.table_number))
-      .replaceAll("{link}", inviteUrl(table.qr_token));
+    return renderInvitationMessage(savedMessage, table.guest_name ?? `Familia ${table.table_number}`, inviteUrl(table.qr_token));
   }
 
   function closeQr() {
@@ -234,6 +250,20 @@ p { font-size: 14px; word-break: break-all; }
         </button>
       }
     >
+      <form onSubmit={saveSettings} className="mb-6 flex flex-col gap-4 border-b border-ink/15 pb-6">
+        <h3 className="font-serif text-2xl">Mensaje y contacto de invitaciones</h3>
+        {tables.length > 0 && <label className="flex flex-col gap-2 text-sm">Familia para la vista previa
+          <select value={previewTable.table_number} onChange={(e) => setPreviewNumber(Number(e.target.value))} className="rounded-sm border border-ink/20 bg-ivory p-3">
+            {tables.map((table) => <option key={table.table_number} value={table.table_number}>{table.guest_name ?? `Familia ${table.table_number}`}</option>)}
+          </select>
+        </label>}
+        <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={savingSettings}
+          previewName={previewTable?.guest_name ?? `Familia ${previewTable?.table_number ?? 1}`}
+          previewLink={inviteUrl(previewTable?.qr_token ?? "token-de-ejemplo")} />
+        <p className="text-sm text-ink/60">Guardá los cambios para usarlos en los botones Copiar mensaje de cada familia. No se envían mensajes automáticamente.</p>
+        {settingsNotice && <p role="status" className="text-sm">{settingsNotice}</p>}
+        <button disabled={savingSettings} className="self-start rounded-sm bg-bronze px-4 py-2 text-ivory disabled:opacity-50">{savingSettings ? "Guardando…" : "Guardar mensaje y contacto"}</button>
+      </form>
       {listError && (
         <p role="alert" className="mb-2 font-sans text-sm text-ink/80">
           {listError}
@@ -247,7 +277,7 @@ p { font-size: 14px; word-break: break-all; }
             >
               <div className="min-w-0">
                 <p className="font-sans text-base text-ink">
-                  Familia {t.table_number}
+                  {t.guest_name ?? `Familia ${t.table_number}`}
                   <button
                     type="button"
                     onClick={() => removeTable(t.table_number)}
@@ -295,6 +325,7 @@ p { font-size: 14px; word-break: break-all; }
                   QR familia
                 </button>
               </div>
+              <details className="text-sm text-ink/70"><summary className="cursor-pointer">Ver mensaje para copiar</summary><p className="mt-2 whitespace-pre-wrap break-words">{buildMessage(t)}</p></details>
             </div>
           ))}
         </div>

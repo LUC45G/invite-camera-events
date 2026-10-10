@@ -39,6 +39,16 @@ familias iniciales, sus nombres y cupos en la tabla; con QR único, se omite
 la tabla de familias. Confirmar el resumen y crear. Los enlaces y QR quedan en
 el panel. Redeploy no vuelve a crear el evento ni modifica sus tokens.
 
+En invitaciones, configurar el mensaje para copiar usando `{nombre}` y
+`{link}` (enlace obligatorio), y el contacto HTTPS o mailto para solicitar
+cambios de contenido. El repo actual es el contacto inicial. Los nombres de
+la pareja se escriben en la plantilla: el nombre interno del evento no los
+reemplaza. La vista previa del setup usa un token de ejemplo; después de
+crear el evento, el panel muestra y copia el mensaje con el token real de
+cada familia. Guardar cambios en "QRs e invitaciones" para aplicarlos a los
+botones de copia. No se envían mensajes automáticamente. Ambos ajustes
+persisten en PostgreSQL y no se muestran en modalidad QR único.
+
 Ambas modalidades están habilitadas. Con QR único, compartir el enlace o
 descargar/imprimir el QR desde admin: entra directamente a cámara, sin RSVP,
 y cada sesión de navegador tiene un cupo independiente. Borrar datos del

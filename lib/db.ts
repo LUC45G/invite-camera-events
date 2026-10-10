@@ -19,6 +19,8 @@ export type Event = {
   setup_complete: boolean;
   deletion_pending: boolean;
   public_qr_token: string | null;
+  invitation_message: string | null;
+  invitation_contact: string | null;
 };
 
 export type Guest = {

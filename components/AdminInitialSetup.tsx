@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { argentinaInput, argentinaInstant, eventSchedule } from "@/lib/setup-policy";
+import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, invitationSettingsSchema, familyInvitationLink, renderInvitationMessage } from "@/lib/invitation-message";
+import { InvitationSettingsFields } from "@/components/InvitationSettingsFields";
+import { useBrowserOrigin } from "@/components/useBrowserOrigin";
 
 type Family = { name: string; max_photos: number };
 const inputClass = "min-w-0 rounded-sm border border-ink/20 bg-ivory px-3 py-2 text-base text-ink";
@@ -11,6 +14,10 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [mode, setMode] = useState<"invitations" | "public_qr">("invitations");
+  const [message, setMessage] = useState(DEFAULT_INVITATION_MESSAGE);
+  const [contact, setContact] = useState(DEFAULT_INVITATION_CONTACT);
+  const [previewIndex, setPreviewIndex] = useState(0);
+  const origin = useBrowserOrigin();
   const [name, setName] = useState("");
   const [starts, setStarts] = useState(argentinaInput(suggestedStart));
   const [reveal, setReveal] = useState(argentinaInput(eventSchedule(suggestedStart).min_reveal_at));
@@ -18,6 +25,7 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
   const [families, setFamilies] = useState<Family[]>([{ name: "Familia 1", max_photos: 24 }]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previewFamily = {name: families[Math.min(previewIndex, families.length - 1)].name, link: familyInvitationLink(origin, slug, "token-de-ejemplo")};
 
   function resize(count: number) {
     if (!Number.isInteger(count) || count < 1 || count > 500) return;
@@ -36,11 +44,15 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
     if (busy) return;
     try {
       if (new Date(argentinaInstant(reveal)) < new Date(schedule().min_reveal_at)) throw new Error("El reveal debe ser desde el mediodía del segundo día posterior al evento.");
+      if (mode === "invitations") {
+        const parsed = invitationSettingsSchema.safeParse({invitation_message: message, invitation_contact: contact});
+        if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+      }
       if (step < 3) { setStep(mode === "public_qr" ? 3 : step + 1); return; }
       setBusy(true);
       const response = await fetch("/api/admin/setup", {
         method: "PUT", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, starts_at: argentinaInstant(starts), reveal_at: argentinaInstant(reveal), access_mode: mode, max_photos_per_session: defaultLimit, ...(mode === "invitations" ? { families } : {}) }),
+        body: JSON.stringify({ name, starts_at: argentinaInstant(starts), reveal_at: argentinaInstant(reveal), access_mode: mode, max_photos_per_session: defaultLimit, ...(mode === "invitations" ? { families, invitation_message: message, invitation_contact: contact } : {}) }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "No se pudo crear el evento");
@@ -74,6 +86,10 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
             {mode === "public_qr" && <p className="text-sm text-ink/70">El cupo es por sesión del navegador. Borrar sus datos o usar otro navegador crea otra sesión; no identifica infaliblemente un dispositivo.</p>}
             <p className="text-sm text-ink/70">La modalidad no se puede cambiar después de crear el evento.</p>
           </fieldset>
+          {mode === "invitations" && <>
+            <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} previewName={previewFamily.name} previewLink={previewFamily.link} />
+            <p className="text-sm text-ink/60">El enlace de esta vista previa es de ejemplo. Los enlaces definitivos se generan al crear las familias.</p>
+          </>}
         </>}
         {step === 2 && <>
           <label className="flex flex-col gap-2">Cantidad inicial de familias / QR<input type="number" required min={1} max={500} value={families.length} onChange={(e) => resize(Number(e.target.value))} className={`${inputClass} w-28`} /></label>
@@ -87,6 +103,13 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
               </tr>)}</tbody>
             </table>
           </div>
+          <label className="flex flex-col gap-2">Vista previa del mensaje por familia
+            <select value={Math.min(previewIndex, families.length - 1)} onChange={(e) => setPreviewIndex(Number(e.target.value))} className={inputClass}>
+              {families.map((family, i) => <option key={i} value={i}>{i + 1}. {family.name}</option>)}
+            </select>
+          </label>
+          <p className="whitespace-pre-wrap break-words rounded-sm border border-ink/15 bg-ivory p-3 text-sm">{renderInvitationMessage(message, families[Math.min(previewIndex, families.length - 1)].name, previewFamily.link)}</p>
+          <p className="text-sm text-ink/60">El enlace es de ejemplo; cada familia tendrá su propio token al crear el evento.</p>
         </>}
         {step === 3 && <>
           <h2 className="font-serif text-2xl">{name}</h2>
@@ -101,6 +124,8 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
           {mode === "invitations" ? <>
             <ul className="max-h-72 overflow-y-auto border-y border-ink/20 py-3">{families.map((f, i) => <li key={i} className="py-1">{i + 1}. {f.name} · {f.max_photos} fotos</li>)}</ul>
             <p className="text-sm text-ink/70">Se crean todas las familias con sus enlaces y QR. La modalidad queda fijada; los cupos y familias quedan bloqueados desde la apertura de carga.</p>
+            <p className="whitespace-pre-wrap break-words rounded-sm border border-ink/15 bg-ivory p-3 text-sm">{renderInvitationMessage(message, families[0].name, previewFamily.link)}</p>
+            <p className="break-all text-sm">Contacto para cambios: {contact}</p>
           </> : <p className="text-sm text-ink/70">Se crea un QR para todo el álbum, sin familias ni RSVP. Cada navegador tiene un cupo de {defaultLimit} fotos. La modalidad queda fijada.</p>}
         </>}
         {error && <p role="alert" className="text-ink">{error}</p>}

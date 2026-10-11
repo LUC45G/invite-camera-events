@@ -54,7 +54,7 @@ export function AdminTestUploadPanel({ slug }: { slug: string }) {
           <h2 className="font-serif text-2xl text-ink">Prueba de carga</h2>
           <p className="mt-1 max-w-2xl text-sm leading-relaxed text-ink/65">Generá un QR temporal para subir una sola foto sin afectar el evento real. La prueba vence en 30 minutos.</p>
         </div>
-        {!run && <button type="button" disabled={busy} onClick={() => void action("create")} className="rounded-sm bg-bronze px-4 py-2 text-sm text-ivory disabled:opacity-60">Mostrar QR de prueba</button>}
+        {(!run || run.status === "cancelled") && <button type="button" disabled={busy} onClick={() => void action("create")} className="rounded-sm bg-bronze px-4 py-2 text-sm text-ivory disabled:opacity-60">Mostrar QR de prueba</button>}
       </div>
       {error && <p role="alert" className="mt-3 text-sm text-red-900">{error}</p>}
       {visibleRun && run && (

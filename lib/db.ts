@@ -41,6 +41,7 @@ export type TableQr = {
   table_number: number;
   qr_token: string;
   max_photos: number;
+  upload_paused: boolean;
 };
 
 export type UploadSession = {

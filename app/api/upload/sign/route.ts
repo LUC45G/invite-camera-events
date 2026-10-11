@@ -7,6 +7,7 @@ import {
   findSession,
   getEventById,
   touchSession,
+  isTableUploadPaused,
 } from "@/lib/upload-db";
 import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
@@ -44,6 +45,9 @@ export async function POST(request: Request) {
 
   const allowance = await uploadAllowance(event, session);
   if (!allowance) return NextResponse.json({ error: "Sesión inválida para este evento" }, { status: 403 });
+  if (session.table_qr_id && await isTableUploadPaused(session.table_qr_id, event.id)) {
+    return NextResponse.json({ error: "La carga de esta familia está pausada" }, { status: 423 });
+  }
   const { uploaded, limit } = allowance;
   if (uploaded >= limit) {
     return NextResponse.json(

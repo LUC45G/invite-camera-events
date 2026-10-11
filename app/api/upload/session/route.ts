@@ -10,6 +10,7 @@ import {
   getTableDisplay,
   touchSession,
   uploadAllowance,
+  isTableUploadPaused,
 } from "@/lib/upload-db";
 import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
@@ -72,6 +73,9 @@ export async function POST(request: Request) {
   }
   const uploadWindow = getUploadWindowState(event);
   if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
+  if (await isTableUploadPaused(table.id, event.id)) {
+    return NextResponse.json({ error: "La carga de esta familia estÃ¡ pausada" }, { status: 423 });
+  }
 
   // Solo las familias que confirmaron asistencia pueden usar la cámara.
   // Pendientes o rechazadas vuelven a la invitación con aviso.

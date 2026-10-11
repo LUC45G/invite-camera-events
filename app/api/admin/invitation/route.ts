@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { isAdmin } from "@/lib/admin-auth";
 import { getAdminInvitationEvent } from "@/lib/event-context";
+import { getUploadWindowState } from "@/lib/upload-window";
 import { sql } from "@/lib/db";
 import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, invitationSettingsSchema } from "@/lib/invitation-message";
 
@@ -17,6 +18,7 @@ export async function PUT(request: Request) {
   if (!(await isAdmin())) return NextResponse.json({error: "No autorizado"}, {status: 401});
   const event = await getAdminInvitationEvent();
   if (!event) return NextResponse.json({error: "Invitaciones no disponibles"}, {status: 404});
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({error: "La información de invitaciones está bloqueada desde la apertura de la carga"}, {status: 409});
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({error: "Datos inválidos"}, {status: 400}); }
   const parsed = invitationSettingsSchema.safeParse(body);

@@ -8,6 +8,7 @@ const setup = await import("../app/api/admin/setup/route.ts");
 const rsvp = await import("../app/api/rsvp/route.ts");
 const session = await import("../app/api/upload/session/route.ts");
 const settings = await import("../app/api/admin/event/route.ts");
+const tables = await import("../app/api/admin/tables/route.ts");
 const db = new PGlite();
 const input = {
   name: "Wedding setup", starts_at: "2027-11-05T20:00:00-03:00", reveal_at: "2027-11-07T12:00:00-03:00",
@@ -24,6 +25,7 @@ test.before(async () => {
   await db.exec(migration2);
   await db.exec(readFileSync(new URL("../db/migrations/003-public-upload-sessions.sql", import.meta.url), "utf8"));
   await db.exec(readFileSync(new URL("../db/migrations/004-invitation-message-contact.sql", import.meta.url), "utf8"));
+  await db.exec(readFileSync(new URL("../db/migrations/005-family-pause.sql", import.meta.url), "utf8"));
 });
 test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE");
@@ -109,4 +111,19 @@ test("familia creada puede responder RSVP y vincular un dispositivo", async () =
   const token = (await linked.json()).sessionToken;
   assert.equal((await session.POST(request({qr: family.qr_token, sessionToken: token}))).status, 200);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM upload_sessions")).rows[0].n, 1);
+});
+
+test("una familia pausada bloquea sesiones existentes y puede reactivarse sin cambiar su QR", async () => {
+  await setup.PUT(request(input));
+  await db.exec("UPDATE events SET upload_starts_at = now() - interval '1 minute', upload_ends_at = now() + interval '1 hour'");
+  const family = (await db.query("SELECT qr_token FROM table_qrs WHERE table_number = 1")).rows[0];
+  await rsvp.POST(request({qr: family.qr_token, token: family.qr_token, name: "Familia uno", status: "accepted", guests: 2}));
+  const linked = await session.POST(request({qr: family.qr_token, confirmed: true}));
+  assert.equal(linked.status, 200);
+  const token = (await linked.json()).sessionToken;
+  assert.equal((await tables.PATCH(request({table_number: 1, upload_paused: true}))).status, 200);
+  assert.equal((await session.POST(request({qr: family.qr_token, sessionToken: token}))).status, 423);
+  assert.equal((await tables.PATCH(request({table_number: 1, upload_paused: false}))).status, 200);
+  assert.equal((await session.POST(request({qr: family.qr_token, sessionToken: token}))).status, 200);
+  assert.equal((await db.query("SELECT qr_token, upload_paused FROM table_qrs WHERE table_number = 1")).rows[0].qr_token, family.qr_token);
 });

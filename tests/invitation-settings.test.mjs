@@ -19,7 +19,7 @@ const input = {name: "Admin internal name", starts_at: "2027-11-05T20:00:00-03:0
 test.before(async () => {
   state.db = db;
   await db.exec(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', ""));
-  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql"]) {
+  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql"]) {
     await db.exec(readFileSync(new URL(`../db/migrations/${filename}`, import.meta.url), "utf8"));
   }
 });

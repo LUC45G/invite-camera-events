@@ -88,6 +88,12 @@ export async function getTableDisplay(
   }) ?? null;
 }
 
+export async function isTableUploadPaused(tableQrId: string, eventId: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT upload_paused FROM table_qrs WHERE id = ${tableQrId} AND event_id = ${eventId} LIMIT 1`;
+  return Boolean(rows[0]?.upload_paused);
+}
+
 // Fotos subidas para una mesa (límite 24 por mesa/familia).
 export async function countPhotosForTable(tableQrId: string): Promise<number> {
   const rows =

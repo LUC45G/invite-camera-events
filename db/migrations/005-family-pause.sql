@@ -1,0 +1,1 @@
+ALTER TABLE table_qrs ADD COLUMN IF NOT EXISTS upload_paused BOOLEAN NOT NULL DEFAULT false;

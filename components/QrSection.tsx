@@ -7,7 +7,7 @@ import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, invitationSetti
 import { InvitationSettingsFields } from "@/components/InvitationSettingsFields";
 import { useBrowserOrigin } from "@/components/useBrowserOrigin";
 
-type QrTable = { table_number: number; qr_token: string; guest_name: string | null; max_photos: number };
+type QrTable = { table_number: number; qr_token: string; guest_name: string | null; max_photos: number; upload_paused: boolean };
 
 async function fetchTables(): Promise<QrTable[]> {
   const response = await fetch("/api/admin/tables");
@@ -37,7 +37,7 @@ export function QrSection({ slug, invitationMessage, invitationContact, locked =
 
   async function saveSettings(event: React.FormEvent) {
     event.preventDefault();
-    if (savingSettings) return;
+    if (savingSettings || locked) return;
     setSettingsNotice(null);
     const parsed = invitationSettingsSchema.safeParse({invitation_message: message, invitation_contact: contact});
     if (!parsed.success) { setSettingsNotice(parsed.error.issues[0].message); return; }
@@ -131,6 +131,21 @@ export function QrSection({ slug, invitationMessage, invitationContact, locked =
     } catch (e) {
       setListError(e instanceof Error ? e.message : "No se pudo actualizar el límite");
       await loadTables();
+    }
+  }
+
+  async function togglePause(table_number: number, upload_paused: boolean) {
+    setMutating(true);
+    setListError(null);
+    try {
+      const r = await fetch("/api/admin/tables", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ table_number, upload_paused }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(d.error ?? "No se pudo actualizar la pausa");
+      await loadTables();
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : "No se pudo actualizar la pausa");
+    } finally {
+      setMutating(false);
     }
   }
 
@@ -257,12 +272,12 @@ p { font-size: 14px; word-break: break-all; }
             {tables.map((table) => <option key={table.table_number} value={table.table_number}>{table.guest_name ?? `Familia ${table.table_number}`}</option>)}
           </select>
         </label>}
-        <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={savingSettings}
+        <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={savingSettings || locked}
           previewName={previewTable?.guest_name ?? `Familia ${previewTable?.table_number ?? 1}`}
           previewLink={inviteUrl(previewTable?.qr_token ?? "token-de-ejemplo")} />
         <p className="text-sm text-ink/60">Guardá los cambios para usarlos en los botones Copiar mensaje de cada familia. No se envían mensajes automáticamente.</p>
         {settingsNotice && <p role="status" className="text-sm">{settingsNotice}</p>}
-        <button disabled={savingSettings} className="self-start rounded-sm bg-bronze px-4 py-2 text-ivory disabled:opacity-50">{savingSettings ? "Guardando…" : "Guardar mensaje y contacto"}</button>
+        <button disabled={savingSettings || locked} className="self-start rounded-sm bg-bronze px-4 py-2 text-ivory disabled:opacity-50">{savingSettings ? "Guardando…" : "Guardar mensaje y contacto"}</button>
       </form>
       {listError && (
         <p role="alert" className="mb-2 font-sans text-sm text-ink/80">
@@ -288,6 +303,7 @@ p { font-size: 14px; word-break: break-all; }
                     ×
                   </button>
                 </p>
+                {t.upload_paused && <p className="text-xs tracking-[0.12em] text-bronze uppercase">Carga pausada</p>}
                 <p className="truncate font-mono text-xs text-ink/55">
                   {inviteUrl(t.qr_token)}
                 </p>
@@ -304,6 +320,9 @@ p { font-size: 14px; word-break: break-all; }
                   />
                   <span>fotos</span>
                 </label>
+                <button type="button" onClick={() => void togglePause(t.table_number, !t.upload_paused)} disabled={mutating} className="mt-2 rounded-sm border border-bronze px-3 py-1 text-xs text-bronze disabled:opacity-60">
+                  {t.upload_paused ? "Reactivar carga" : "Pausar carga"}
+                </button>
               </div>
               <div className="flex gap-2">
                 <CopyButton

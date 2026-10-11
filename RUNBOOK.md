@@ -1,124 +1,147 @@
-# Runbook — QR Wedding
+# Runbook - QR Wedding
 
-## 1. Prerequisitos (lo que hay que aportar)
+## 1. Requisitos
 
-| Requisito | Dónde | Notas |
-|---|---|---|
-| `DATABASE_URL` | Neon → Project → Connection string | Postgres serverless |
-| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Cloudinary Dashboard | Plan free alcanza para 1 evento |
-| `ADMIN_PASSWORD` | Elegir una | Acceso al panel admin |
-| Datos del evento | Nombre, slug, fecha reveal, contacto | Para seed y página |
-| Cantidad de mesas/familias | Número | Una invitación por mesa |
+Configurar en Vercel y en `.env.local`:
 
-## 2. Setup de base de datos
-
-### Migración para el asistente de configuración
-
-Con `DATABASE_URL` configurada, ejecutar `npm run db:migrate`. Este comando
-crea las tablas y aplica migraciones aditivas en transacciones; no ejecuta
-seed, no borra datos y no regenera tokens. Repetirlo es seguro.
-
-Después entrar a `/admin`. Si hay un evento existente pendiente de configurar,
-elegir conservarlo y confirmar inicio/reveal, o eliminarlo explícitamente.
-Mientras falte esa confirmación, se bloquean nuevas cargas. El borrado requiere
-escribir `BORRAR TODO`, elimina recursos del evento en Cloudinary e invalida
-sus QR; si falla, conservar las referencias y reintentar desde el admin.
-
-Para comprobar migraciones y borrado sin servicios externos, usar `npm test`.
-Las pruebas usan PostgreSQL aislado en memoria y Cloudinary simulado.
-
-El seed/reset de las secciones siguientes corresponde al flujo manual anterior
-y al desarrollo; no usar reset para migrar un evento que se quiera conservar.
-
-### Instalación vacía desde el admin
-
-Después de `npm run db:migrate`, entrar a `/admin` y autenticarse. El asistente
-pide nombre del evento (visible solo en admin), inicio y reveal en horario de
-Argentina, cupo predeterminado y modalidad. Con invitaciones, revisar las
-familias iniciales, sus nombres y cupos en la tabla; con QR único, se omite
-la tabla de familias. Confirmar el resumen y crear. Los enlaces y QR quedan en
-el panel. Redeploy no vuelve a crear el evento ni modifica sus tokens.
-
-En invitaciones, configurar el mensaje para copiar usando `{nombre}` y
-`{link}` (enlace obligatorio), y el contacto HTTPS o mailto para solicitar
-cambios de contenido. El repo actual es el contacto inicial. Los nombres de
-la pareja se escriben en la plantilla: el nombre interno del evento no los
-reemplaza. La vista previa del setup usa un token de ejemplo; después de
-crear el evento, el panel muestra y copia el mensaje con el token real de
-cada familia. Guardar cambios en "QRs e invitaciones" para aplicarlos a los
-botones de copia. No se envían mensajes automáticamente. Ambos ajustes
-persisten en PostgreSQL y no se muestran en modalidad QR único.
-
-Ambas modalidades están habilitadas. Con QR único, compartir el enlace o
-descargar/imprimir el QR desde admin: entra directamente a cámara, sin RSVP,
-y cada sesión de navegador tiene un cupo independiente. Borrar datos del
-navegador o usar otro permite crear otra sesión. La ruta principal /<slug>
-responde 404 en este modo; /upload, /galeria y /live siguen disponibles.
-
-Los controles automáticos de ventana se incorporan en el ticket 07.
-La configuración guarda la ventana, pero la carga todavía
-se controla con el interruptor manual hasta implementar el ticket de horarios.
-
-1. Abrir Neon → SQL Editor.
-2. Pegar y ejecutar `db/schema.sql` (idempotente).
-3. Editar las variables al inicio de `db/seed.sql` y ejecutarlo.
-4. El SELECT final imprime `table_number` + `qr_token` → guardar esa salida.
-
-### 2b. Reset (borrar todo y re-seed)
-
-Editar la sección `CONFIGURACIÓN` de `scripts/reset-db.mts` (evento, mesas, reveal) y:
-
-```bash
-npm run db:reset        # muestra el plan, NO ejecuta nada
-npm run db:reset -- --yes  # ejecuta el reset real
-```
-
-- Trunca todas las tablas, re-aplica schema y re-seed.
-- **Regenera todos los tokens** → los QRs impresos anteriores quedan inválidos. Re-imprimir después.
-
-## 3. QRs e invitaciones
-
-- **QR por mesa**: URL `https://<dominio>/<slug>/upload?qr=<qr_token>` → generador (qrencode o web) → imprimir, uno por mesa.
-- **Invitación**: URL `https://<dominio>/<slug>?token=<qr_token>` → enviar por WhatsApp/mail a cada familia.
-- Un mismo token sirve para ambas cosas (invitación = mesa).
-
-## 4. Deploy
-
-1. Configurar env vars en Vercel (las 5 de la tabla de prerequisitos).
-2. Deploy del repo.
-3. Verificar HTTPS (la cámara no funciona sin SSL).
-4. Probar en un celular real: invitación → RSVP; QR → cámara.
-
-## 5. Día del evento
-
-1. Laptop/TV en `<dominio>/<slug>/live`, fullscreen.
-2. Admin abierto en el celular del organizador para moderar.
-3. QRs en las mesas.
-4. Desde `/admin`, controlá RSVP, fecha de reveal, subida, proyección, almacenamiento y QR.
-5. Descargá el ZIP antes de usar “Borrar todo”; esa acción pide confirmación exacta.
-
-## 6. Contingencias
-
-| Problema | Acción |
+| Variable | Uso |
 |---|---|
-| Cloudinary caído | Pausar subida: `UPDATE events SET upload_open = false;` y avisar por las pantallas |
-| Spam / foto inapropiada | Rechazar desde admin; NSFW flag prioriza revisión |
-| Red del salón caída | La proyección muestra la última foto conocida (fallback) |
-| QR perdido | Regenerar token de esa mesa y reimprimir |
-| Borrar todo al final | Admin → opción "borrar todo" (borra DB + Cloudinary) |
+| `DATABASE_URL` | Connection string de Neon PostgreSQL |
+| `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary desde el navegador |
+| `CLOUDINARY_API_KEY` | Firmas de subida |
+| `CLOUDINARY_API_SECRET` | Firmas y limpieza de recursos |
+| `ADMIN_PASSWORD` | Acceso a `/admin` |
+| `WEDDING_CONTACT_NAME` | Contacto mostrado por la app |
+| `WEDDING_CONTACT_PHONE` | Contacto mostrado por la app |
 
-### 6b. Prueba de carga (dry-run, sin fotos reales)
+El contenido de la invitacion y los nombres de las familias se editan desde el
+admin o en codigo segun corresponda; no hay CMS.
+
+## 2. Base de datos
+
+Para una base nueva o existente, ejecutar:
 
 ```bash
-npm run load:test                                    # 50 sesiones + 20 streams en localhost
-npm run load:test -- --host https://<preview>.vercel.app --n 100 --m 50
+npm install
+npm run db:migrate
 ```
 
-Mide que el endpoint de sesión responda (403 esperado = QR ficticio pero endpoint sano)
-y que los streams SSE reciban heartbeat.
+`db:migrate` es no destructivo: crea tablas, agrega columnas y aplica las
+migraciones repetibles. No crea eventos, no hace seed, no regenera tokens y no
+borra datos. Se puede ejecutar antes de cada deploy.
 
-## 7. Post-evento
+Luego abrir `/admin`. En una base vacia, el asistente crea el unico evento.
+En una base existente, el admin muestra los datos detectados y permite elegir
+si conservarlos o eliminarlos. El borrado exige escribir `BORRAR TODO` y
+conserva referencias si Cloudinary falla para permitir reintentar.
 
-1. Descargar ZIP de fotos aprobadas desde admin.
-2. Revelar galería (auto por `reveal_at` o manual).
-3. Las fotos viven hasta que Cloudinary las purge o admin borre todo.
+### Reset de desarrollo
+
+`db:reset` es destructivo y solo sirve para una base aislada de desarrollo.
+Editar primero la configuracion al comienzo de
+`scripts/reset-db.mts`, incluyendo:
+
+- `ACCESS_MODE = "invitations"` o `"public_qr"`.
+- `NUM_FAMILIES` y `MAX_PHOTOS` para invitaciones.
+- Inicio, ventana de carga y reveal.
+
+Probar el plan sin modificar la base:
+
+```bash
+npm run db:reset
+```
+
+Ejecutar el reset real solo sobre una base de desarrollo:
+
+```bash
+npm run db:reset -- --yes
+```
+
+El reset trunca datos, reaplica schema y migraciones, crea un evento listo para
+usar y genera nuevos tokens. Los QRs anteriores quedan invalidos. En modo
+`public_qr` crea un solo token; en modo `invitations` crea las familias,
+invitaciones y cupos configurados.
+
+## 3. Setup inicial desde admin
+
+1. Ingresar a `/admin` con `ADMIN_PASSWORD`.
+2. Completar nombre interno, fecha y hora de inicio, fecha y hora de reveal,
+   cupo predeterminado y modalidad.
+3. En `invitations`, indicar cuantas familias crear inicialmente y revisar la
+   tabla de nombre y cupo de cada familia. Se pueden crear o eliminar después.
+4. Configurar mensaje de invitacion con `{nombre}` y `{link}` y un contacto
+   HTTPS o `mailto:` para cambios de contenido.
+5. En `public_qr`, revisar el enlace y QR unico. No se crean familias, RSVP ni
+   mesas.
+6. Confirmar el setup. La modalidad queda bloqueada; la fecha de inicio y
+   reveal se validan contra la ventana de carga.
+
+La carga abre a las 12:00 del mediodia del dia del evento y cierra 24 horas
+despues. Por ejemplo, evento el 5 de noviembre: cierre el 6 de noviembre a
+las 12:00. Las cargas cuya marca de tiempo sea anterior al cierre se aceptan.
+
+## 4. QR e invitaciones
+
+En modo `invitations`, cada familia tiene un QR y un enlace de invitacion.
+La familia debe aceptar el RSVP antes de vincular el dispositivo. Desde el
+admin se pueden pausar o reactivar familias; una vez iniciado el evento no se
+modifican sus nombres, cupos o QR.
+
+En modo `public_qr`, el QR unico abre directamente la carga. Cada navegador
+tiene una sesion y cupo independiente. La ruta principal del evento responde
+404; las rutas `/upload`, `/galeria` y `/live` siguen disponibles.
+
+## 5. Deploy y prueba previa
+
+1. Configurar todas las variables en Vercel.
+2. Desplegar la rama elegida.
+3. Ejecutar `npm run db:migrate` contra Neon antes de usar el admin.
+4. Abrir `/admin` desde la URL HTTPS de Vercel.
+5. Usar `Mostrar QR de prueba`.
+6. Escanear desde un celular, sacar una foto, confirmar y subirla.
+7. Revisar la galeria de prueba y confirmar que la foto no aparece en `/live`,
+   galeria publica ni exportacion.
+8. Usar `Limpiar fotos de prueba`. Si Cloudinary falla, reintentar la limpieza
+   desde el mismo panel.
+
+La prueba temporal dura 30 minutos y permite una sola foto. Al completar o
+cancelar, su QR queda invalido y hay que generar otro. Las fotos de prueba
+quedan aisladas de las consultas reales.
+
+## 6. Operacion durante el evento
+
+1. Abrir `/<slug>/live` en la pantalla de proyeccion.
+2. Abrir `/admin` en el dispositivo del organizador.
+3. Compartir los QRs de familia o el QR unico segun la modalidad.
+4. Controlar RSVP, familias pausadas, moderacion, reveal y proyeccion desde
+   admin.
+5. Confirmar que las fotos aprobadas aparezcan en la proyeccion y que las
+   pendientes se indiquen en moderacion.
+6. Descargar el ZIP de fotos aprobadas antes de borrar el evento.
+
+La regla automatica de moderacion aprueba scores NSFW menores a `0.7`. Scores
+de `0.7` o nulos quedan pendientes.
+
+## 7. Contingencias
+
+| Problema | Accion |
+|---|---|
+| Cloudinary no responde | Pausar cargas desde admin y reintentar cuando vuelva |
+| Foto inapropiada | Moderar desde admin; el score NSFW solo prioriza revision |
+| QR de prueba vencido o cancelado | Generar otro desde admin |
+| Limpieza de prueba fallida | Usar `Limpiar fotos de prueba` nuevamente |
+| Familia con problemas durante el evento | Pausarla; no borrar ni cambiar su identidad |
+| QR perdido | Copiar o descargar el QR vigente desde admin |
+| Datos de un evento | Exportar primero; `Borrar todo` requiere confirmacion exacta |
+
+## 8. Verificaciones locales
+
+```bash
+npm test
+npx tsc --noEmit
+npm run db:reset
+npm run load:test
+```
+
+Las pruebas usan base aislada y Cloudinary simulado cuando corresponde. No
+ejecutar `db:reset -- --yes` sobre Neon de produccion.

@@ -15,6 +15,7 @@ const photos = await import("../app/api/photos/route.ts");
 const tables = await import("../app/api/admin/tables/route.ts");
 const rsvp = await import("../app/api/rsvp/route.ts");
 const exportPhotos = await import("../app/api/admin/export/route.ts");
+const galleryPage = (await import("../app/[slug]/galeria/page.tsx")).default;
 const invitationPage = (await import("../app/[slug]/page.tsx")).default;
 const uploadPage = (await import("../app/[slug]/upload/page.tsx")).default;
 const {CameraUploader} = await import("../components/CameraUploader.tsx");
@@ -160,4 +161,20 @@ test("una reserva vencida libera el cupo para reintentar", async () => {
   await db.exec("UPDATE upload_authorizations SET expires_at = now() - interval '1 second'");
   const retry = await authorize(first.sessionToken);
   assert.equal(retry.response.status, 200);
+});
+
+test("a revealed gallery keeps approved photos when another photo is pending", async () => {
+  const first = await (await openSession()).json();
+  const firstAuthorization = await authorize(first.sessionToken);
+  const firstPhoto = await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: firstAuthorization.data.authorizationToken, publicId: firstAuthorization.data.publicId}));
+  const firstData = await firstPhoto.json();
+  await moderation.POST(request({id: firstData.id, action: "approve"}));
+
+  const second = await (await openSession()).json();
+  const secondAuthorization = await authorize(second.sessionToken);
+  await complete.POST(request({sessionToken: second.sessionToken, authorizationToken: secondAuthorization.data.authorizationToken, publicId: secondAuthorization.data.publicId}));
+  await db.exec("UPDATE events SET reveal_at = now() - interval '1 second'");
+
+  const rendered = await galleryPage({params: Promise.resolve({slug: event.slug})});
+  assert.match(JSON.stringify(rendered), /cloudinary_url/);
 });

@@ -193,6 +193,12 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
         </div>
       )}
 
+      {!photosLoading && (stats.pending ?? 0) > 0 && (
+        <div role="status" className="mx-auto mb-4 max-w-5xl rounded-sm border border-bronze/40 bg-bronze/10 px-4 py-3 text-center font-sans text-sm text-ink">
+          Hay {stats.pending} {stats.pending === 1 ? "foto pendiente" : "fotos pendientes"} de moderaciÃ³n.
+        </div>
+      )}
+
           {photoError && (
             <p role="alert" className="mx-auto mb-4 max-w-5xl font-sans text-sm text-ink/80">
               {photoError}

@@ -28,6 +28,9 @@ type EventSettings = {
   upload_open: boolean;
   projection_enabled: boolean;
   slideshow_interval: number;
+  upload_starts_at: string | null;
+  upload_ends_at: string | null;
+  upload_window: { status: string; label: string; message: string; startsAt: string | null; endsAt: string | null; canTogglePause: boolean; canEditSetup: boolean };
 };
 
 type StorageMetric = { usage: number | null; limit: number | null };
@@ -148,7 +151,7 @@ function rsvpStatusLabel(status: string): string {
   return "Pendiente";
 }
 
-export function AdminRsvpPanel({ slug }: { slug: string }) {
+export function AdminRsvpPanel({ slug, locked = false }: { slug: string; locked?: boolean }) {
   const fetchRsvp = useCallback(async (): Promise<{
     guests: AdminRsvpRow[];
     summary: AdminRsvpSummary | null;
@@ -284,9 +287,9 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
                         }}
                         className="w-32 rounded-sm border border-bronze bg-ivory px-1.5 py-0.5 text-sm text-ink"
                       />
-                      <button
+                  <button
                         type="button"
-                        disabled={savingName || !draftName.trim()}
+                        disabled={savingName || locked || !draftName.trim()}
                         onClick={() => row.table_number !== null && void saveName(row.table_number)}
                         className="text-sm text-bronze disabled:opacity-60"
                         aria-label="Guardar nombre"
@@ -298,11 +301,12 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
                     <button
                       type="button"
                       title="Editar nombre"
-                      onClick={() => {
+                    onClick={() => {
                         setEditingTable(row.table_number);
                         setDraftName(row.name ?? "");
                       }}
-                      className="group text-left"
+                      disabled={locked}
+                      className="group text-left disabled:opacity-60"
                     >
                       {row.name ?? "—"}{" "}
                       <span className="text-ink/30 group-hover:text-bronze">✏️</span>
@@ -312,7 +316,7 @@ export function AdminRsvpPanel({ slug }: { slug: string }) {
                 <td className="px-3 py-2">
                   <select
                     value={row.rsvp_status}
-                    disabled={savingStatus === row.table_number}
+                    disabled={savingStatus === row.table_number || locked}
                     onChange={(e) =>
                       row.table_number !== null && void saveStatus(row.table_number, e.target.value)
                     }
@@ -385,9 +389,9 @@ export function AdminEventSettings({ slug }: { slug: string }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           slug,
-          reveal_at: form.revealLocal ? new Date(form.revealLocal).toISOString() : null,
-          upload_open: form.uploadOpen,
           projection_enabled: form.projectionEnabled,
+          ...(data?.event?.upload_window.canEditSetup ? { reveal_at: form.revealLocal ? new Date(form.revealLocal).toISOString() : null } : {}),
+          ...(data?.event?.upload_window.canTogglePause ? { upload_open: form.uploadOpen } : {}),
         }),
       });
       const response = await res.json();
@@ -409,6 +413,8 @@ export function AdminEventSettings({ slug }: { slug: string }) {
           {data.event.name} · /{data.event.slug}
         </p>
       )}
+      {data?.event?.upload_window && <p className="mb-3 rounded-sm border border-ink/10 px-3 py-2 text-sm text-ink/70">Carga: <strong>{data.event.upload_window.label}</strong>. {data.event.upload_window.message} {data.event.upload_window.startsAt && data.event.upload_window.endsAt && <>Ventana: {new Date(data.event.upload_window.startsAt).toLocaleString("es-AR")} a {new Date(data.event.upload_window.endsAt).toLocaleString("es-AR")}.</>}</p>}
+      {data?.event?.upload_window && <p className="mb-3 rounded-sm border border-ink/10 px-3 py-2 text-sm text-ink/70">Carga: <strong>{data.event.upload_window.label}</strong>. {data.event.upload_window.message}</p>}
       {loadError && (
         <p role="alert" className="mt-1 font-sans text-sm text-ink/80">
           {loadError}
@@ -421,6 +427,7 @@ export function AdminEventSettings({ slug }: { slug: string }) {
             type="datetime-local"
             value={form.revealLocal}
             onChange={(e) => updateForm({ revealLocal: e.target.value })}
+            disabled={Boolean(data?.event && !data.event.upload_window.canEditSetup)}
             className="rounded-sm border border-ink/20 bg-ivory px-3 py-2 text-base text-ink"
           />
         </label>
@@ -429,6 +436,7 @@ export function AdminEventSettings({ slug }: { slug: string }) {
             type="checkbox"
             checked={form.uploadOpen}
             onChange={(e) => updateForm({ uploadOpen: e.target.checked })}
+            disabled={Boolean(data?.event && !data.event.upload_window.canTogglePause)}
             className="h-4 w-4 accent-[#B57E7F]"
           />
           Subida abierta
@@ -487,7 +495,7 @@ export function AdminStoragePanel({ slug }: { slug: string }) {
           onClick={() => {
             void refresh();
           }}
-          disabled={loading}
+                    disabled={loading}
           className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink disabled:opacity-60"
         >
           {loading ? "Actualizando…" : "Actualizar"}

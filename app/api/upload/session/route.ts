@@ -11,6 +11,7 @@ import {
   touchSession,
   uploadAllowance,
 } from "@/lib/upload-db";
+import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
 const sessionSchema = z.object({
   qr: z.string().min(10).max(64),
@@ -38,9 +39,11 @@ export async function POST(request: Request) {
   if (accessMode === "public_qr") {
     const event = await findPublicQr(qr);
     if (!slug || !event || event.slug !== slug) return NextResponse.json({ error: "QR inválido" }, { status: 403 });
-    if (!event.setup_complete || event.deletion_pending || !event.upload_open) {
+    if (!event.setup_complete || event.deletion_pending) {
       return NextResponse.json({ error: "La carga de fotos no está disponible" }, { status: 423 });
     }
+    const uploadWindow = getUploadWindowState(event);
+    if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
     let session = sessionToken ? await findSession(sessionToken) : null;
     if (session && (session.event_id !== event.id || session.access_mode !== "public_qr" || session.table_qr_id !== null)) {
       return NextResponse.json({ error: "La sesión pertenece a otro evento o modalidad" }, { status: 409 });
@@ -67,12 +70,8 @@ export async function POST(request: Request) {
   if (!event.setup_complete || event.deletion_pending) {
     return NextResponse.json({ error: "El organizador debe completar la configuración del evento" }, { status: 423 });
   }
-  if (!event.upload_open) {
-    return NextResponse.json(
-      { error: "La carga de fotos está cerrada" },
-      { status: 423 },
-    );
-  }
+  const uploadWindow = getUploadWindowState(event);
+  if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
 
   // Solo las familias que confirmaron asistencia pueden usar la cámara.
   // Pendientes o rechazadas vuelven a la invitación con aviso.

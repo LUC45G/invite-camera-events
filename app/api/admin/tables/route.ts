@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
 import { getAdminInvitationEvent as getAdminEvent } from "@/lib/event-context";
+import { getUploadWindowState } from "@/lib/upload-window";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export async function POST() {
 
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
 
   const maxRows = (await sql`
     SELECT COALESCE(MAX(table_number), 0) AS max FROM table_qrs WHERE event_id = ${event.id}
@@ -71,6 +73,7 @@ export async function PATCH(request: Request) {
 
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
 
   let body: unknown;
   try {
@@ -105,6 +108,7 @@ export async function DELETE(request: Request) {
 
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
 
   let body: unknown;
   try {

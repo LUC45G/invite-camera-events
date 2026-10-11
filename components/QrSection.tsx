@@ -16,7 +16,7 @@ async function fetchTables(): Promise<QrTable[]> {
   return data.tables ?? [];
 }
 
-export function QrSection({ slug, invitationMessage, invitationContact }: { slug: string; invitationMessage?: string | null; invitationContact?: string | null }) {
+export function QrSection({ slug, invitationMessage, invitationContact, locked = false }: { slug: string; invitationMessage?: string | null; invitationContact?: string | null; locked?: boolean }) {
   const [savedMessage, setSavedMessage] = useState(invitationMessage ?? DEFAULT_INVITATION_MESSAGE);
   const [message, setMessage] = useState(savedMessage);
   const [contact, setContact] = useState(invitationContact ?? DEFAULT_INVITATION_CONTACT);
@@ -243,7 +243,7 @@ p { font-size: 14px; word-break: break-all; }
         <button
           type="button"
           onClick={addTable}
-          disabled={mutating}
+          disabled={mutating || locked}
           className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory disabled:opacity-60"
         >
           {mutating ? "…" : "＋ Familia"}
@@ -281,7 +281,7 @@ p { font-size: 14px; word-break: break-all; }
                   <button
                     type="button"
                     onClick={() => removeTable(t.table_number)}
-                    disabled={mutating}
+                    disabled={mutating || locked}
                     aria-label={`Eliminar familia ${t.table_number}`}
                     className="ml-2 text-sm text-ink/40 hover:text-ink disabled:opacity-60"
                   >
@@ -299,6 +299,7 @@ p { font-size: 14px; word-break: break-all; }
                     max={100}
                     value={t.max_photos}
                     onChange={(e) => updateLimit(t.table_number, Number(e.target.value))}
+                    disabled={locked}
                     className="w-16 rounded-sm border border-ink/15 bg-ivory px-2 py-1 text-sm text-ink [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <span>fotos</span>

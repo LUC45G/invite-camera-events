@@ -36,6 +36,7 @@ test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE"); state.admin = true;
   assert.equal((await setup.PUT(request(input))).status, 201);
   event = (await db.query("SELECT * FROM events")).rows[0];
+  await db.exec("UPDATE events SET upload_starts_at = now() - interval '1 minute', upload_ends_at = now() + interval '1 hour'");
 });
 test.after(async () => { await db.close(); });
 

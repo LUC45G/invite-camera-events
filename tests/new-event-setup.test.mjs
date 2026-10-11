@@ -97,6 +97,7 @@ test("modalidad inmutable tanto en API como en la base", async () => {
 
 test("familia creada puede responder RSVP y vincular un dispositivo", async () => {
   await setup.PUT(request(input));
+  await db.exec("UPDATE events SET upload_starts_at = now() - interval '1 minute', upload_ends_at = now() + interval '1 hour'");
   const family = (await db.query("SELECT qr_token FROM table_qrs WHERE table_number = 1")).rows[0];
   assert.equal((await session.POST(request({qr: family.qr_token}))).status, 403);
   assert.equal((await rsvp.POST(request({token: family.qr_token, name: "Familia uno", status: "accepted", guests: 3}))).status, 200);

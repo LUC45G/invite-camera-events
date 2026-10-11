@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { QrSection } from "@/components/QrSection";
 import { PublicQrPanel } from "@/components/PublicQrPanel";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import type { UploadWindowState } from "@/lib/upload-window";
 import {
   AdminDangerPanel,
   AdminEventSettings,
@@ -22,10 +23,12 @@ type Photo = {
   created_at: string;
 };
 
-export function AdminModeration({ slug, eventName, accessMode, publicToken, sessionLimit, invitationMessage, invitationContact }: {
+export function AdminModeration({ slug, eventName, accessMode, publicToken, sessionLimit, invitationMessage, invitationContact, uploadWindow }: {
   slug: string; eventName: string; accessMode: "invitations" | "public_qr"; publicToken: string | null; sessionLimit: number;
   invitationMessage?: string | null; invitationContact?: string | null;
+  uploadWindow?: UploadWindowState;
 }) {
+  const uploadState = uploadWindow ?? { status: "available", startsAt: null, endsAt: null, canStartNewUpload: true, canTogglePause: true, canEditSetup: true, label: "Disponible", message: "La carga está disponible." } satisfies UploadWindowState;
   const [notification, setNotification] = useState<string | null>(null);
   const [speedDraft, setSpeedDraft] = useState<number | null>(null);
   const [busyPhoto, setBusyPhoto] = useState<string | null>(null);
@@ -390,10 +393,10 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
         <AdminStoragePanel slug={slug} />
 
         {/* 4. QRs */}
-        {accessMode === "invitations" ? <QrSection slug={slug} invitationMessage={invitationMessage} invitationContact={invitationContact} /> : publicToken && <PublicQrPanel slug={slug} token={publicToken} limit={sessionLimit} />}
+        {accessMode === "invitations" ? <QrSection slug={slug} invitationMessage={invitationMessage} invitationContact={invitationContact} locked={!uploadState.canEditSetup} /> : publicToken && <PublicQrPanel slug={slug} token={publicToken} limit={sessionLimit} locked={!uploadState.canEditSetup} />}
 
         {/* 5. Invitados */}
-        {accessMode === "invitations" && <AdminRsvpPanel slug={slug} />}
+        {accessMode === "invitations" && <AdminRsvpPanel slug={slug} locked={!uploadState.canEditSetup} />}
 
         {/* 6. Evento y Reveal */}
         <AdminEventSettings slug={slug} />

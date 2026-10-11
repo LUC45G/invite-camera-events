@@ -6,6 +6,7 @@ import { AdminExistingSetup } from "@/components/AdminExistingSetup";
 import { sql } from "@/lib/db";
 import { weddingEvent } from "@/lib/event-data";
 import { AdminInitialSetup } from "@/components/AdminInitialSetup";
+import { getUploadWindowState } from "@/lib/upload-window";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export default async function AdminPage() {
 
   return (
     <div className="admin-scroll">
-      <AdminModeration slug={event.slug} eventName={event.name} accessMode={event.access_mode} publicToken={event.public_qr_token} sessionLimit={event.max_photos_per_session} invitationMessage={event.invitation_message} invitationContact={event.invitation_contact} />
+      <AdminModeration slug={event.slug} eventName={event.name} accessMode={event.access_mode} publicToken={event.public_qr_token} sessionLimit={event.max_photos_per_session} invitationMessage={event.invitation_message} invitationContact={event.invitation_contact} uploadWindow={getUploadWindowState(event)} />
     </div>
   );
 }

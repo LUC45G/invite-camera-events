@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
 import { getAdminInvitationEvent as getAdminEvent } from "@/lib/event-context";
+import { getUploadWindowState } from "@/lib/upload-window";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
 
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus RSVP están bloqueados desde la apertura de la carga" }, { status: 409 });
 
   let body: unknown;
   try {

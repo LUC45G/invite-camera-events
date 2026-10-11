@@ -8,6 +8,7 @@ import {
   getEventById,
   touchSession,
 } from "@/lib/upload-db";
+import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
 const signSchema = z.object({
   sessionToken: z.string().min(10).max(64),
@@ -38,12 +39,8 @@ export async function POST(request: Request) {
   if (!event.setup_complete || event.deletion_pending) {
     return NextResponse.json({ error: "El evento no está disponible para cargar fotos" }, { status: 423 });
   }
-  if (!event.upload_open) {
-    return NextResponse.json(
-      { error: "La carga de fotos está cerrada" },
-      { status: 423 },
-    );
-  }
+  const uploadWindow = getUploadWindowState(event);
+  if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
 
   const allowance = await uploadAllowance(event, session);
   if (!allowance) return NextResponse.json({ error: "Sesión inválida para este evento" }, { status: 403 });

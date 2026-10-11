@@ -5,6 +5,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { broadcastSlideshow } from "@/lib/sse";
 
 import { getAdminEvent } from "@/lib/event-context";
+import { getUploadWindowState } from "@/lib/upload-window";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,8 @@ type EventSettings = Pick<
   | "projection_enabled"
   | "slideshow_interval"
   | "max_photos_per_session"
+  | "upload_starts_at"
+  | "upload_ends_at"
 >;
 
 const eventSchema = z.object({
@@ -43,7 +46,7 @@ export async function GET(request: Request) {
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   const rows = (await sql`
     SELECT name, slug, reveal_at, upload_open, projection_enabled,
-           slideshow_interval, max_photos_per_session
+           slideshow_interval, max_photos_per_session, upload_starts_at, upload_ends_at
     FROM events
     WHERE id = ${event.id}
     LIMIT 1
@@ -53,7 +56,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   }
 
-  return NextResponse.json({ event: rows[0] });
+  return NextResponse.json({ event: { ...rows[0], upload_window: getUploadWindowState(rows[0]) } });
 }
 
 export async function POST(request: Request) {
@@ -96,6 +99,15 @@ export async function POST(request: Request) {
     return badRequest("No hay cambios para guardar");
   }
 
+  const uploadWindow = getUploadWindowState(event);
+  const changingPause = parsed.data.upload_open !== undefined && parsed.data.upload_open !== event.upload_open;
+  if (changingPause && !uploadWindow.canTogglePause) {
+    return NextResponse.json({ error: `No se puede pausar o reanudar: ${uploadWindow.message}` }, { status: 409 });
+  }
+  if ((revealAt !== undefined || parsed.data.max_photos_per_session !== undefined) && !uploadWindow.canEditSetup) {
+    return NextResponse.json({ error: "La configuración queda bloqueada desde la apertura de la carga" }, { status: 409 });
+  }
+
   if (revealAt !== undefined) {
     await sql`UPDATE events SET reveal_at = ${revealAt} WHERE id = ${event.id}`;
   }
@@ -118,11 +130,11 @@ export async function POST(request: Request) {
 
   const updated = (await sql`
     SELECT name, slug, reveal_at, upload_open, projection_enabled,
-           slideshow_interval, max_photos_per_session
+           slideshow_interval, max_photos_per_session, upload_starts_at, upload_ends_at
     FROM events
     WHERE id = ${event.id}
     LIMIT 1
   `) as EventSettings[];
 
-  return NextResponse.json({ ok: true, event: updated[0] });
+  return NextResponse.json({ ok: true, event: { ...updated[0], upload_window: getUploadWindowState(updated[0]) } });
 }

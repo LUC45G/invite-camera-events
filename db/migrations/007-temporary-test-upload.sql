@@ -13,6 +13,12 @@ CREATE INDEX IF NOT EXISTS idx_upload_test_runs_event ON upload_test_runs(event_
 ALTER TABLE upload_sessions ADD COLUMN IF NOT EXISTS test_run_id UUID REFERENCES upload_test_runs(id) ON DELETE CASCADE;
 ALTER TABLE upload_authorizations ADD COLUMN IF NOT EXISTS test_run_id UUID REFERENCES upload_test_runs(id) ON DELETE CASCADE;
 ALTER TABLE photos ADD COLUMN IF NOT EXISTS test_run_id UUID REFERENCES upload_test_runs(id) ON DELETE CASCADE;
+ALTER TABLE upload_sessions DROP CONSTRAINT IF EXISTS upload_sessions_mode_family;
+ALTER TABLE upload_sessions ADD CONSTRAINT upload_sessions_mode_family CHECK (
+  (access_mode = 'invitations' AND table_qr_id IS NOT NULL)
+  OR (access_mode = 'public_qr' AND table_qr_id IS NULL)
+  OR (test_run_id IS NOT NULL AND table_qr_id IS NULL)
+);
 CREATE INDEX IF NOT EXISTS idx_upload_sessions_test_run ON upload_sessions(test_run_id);
 CREATE INDEX IF NOT EXISTS idx_upload_authorizations_test_run ON upload_authorizations(test_run_id, status);
 CREATE INDEX IF NOT EXISTS idx_photos_test_run ON photos(test_run_id);

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { randomBytes } from "node:crypto";
 import { env } from "@/lib/env";
 import { signUpload } from "@/lib/cloudinary";
 import {
@@ -8,6 +9,7 @@ import {
   getEventById,
   touchSession,
   isTableUploadPaused,
+  reserveUploadAuthorization,
 } from "@/lib/upload-db";
 import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
@@ -59,7 +61,11 @@ export async function POST(request: Request) {
   await touchSession(session.id);
 
   const folder = `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
-  const { timestamp, signature, apiKey } = signUpload(folder);
+  const authorizationToken = randomBytes(32).toString("hex");
+  const publicId = `upload-${authorizationToken}`;
+  const { timestamp, signature, apiKey } = signUpload(folder, publicId);
+  const reservation = await reserveUploadAuthorization(event, session, publicId, timestamp, authorizationToken);
+  if (!reservation) return NextResponse.json({ error: "Alcanzaste el lÃ­mite de fotos" }, { status: 409 });
 
   return NextResponse.json({
     timestamp,
@@ -67,6 +73,8 @@ export async function POST(request: Request) {
     apiKey,
     cloudName: env.CLOUDINARY_CLOUD_NAME,
     folder,
-    remaining: limit - uploaded,
+    authorizationToken,
+    publicId,
+    remaining: reservation.limit - reservation.uploaded,
   });
 }

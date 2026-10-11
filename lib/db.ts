@@ -55,6 +55,18 @@ export type UploadSession = {
   last_seen_at: string;
 };
 
+export type UploadAuthorization = {
+  id: string;
+  token: string;
+  event_id: string;
+  upload_session_id: string;
+  table_qr_id: string | null;
+  public_id: string;
+  signed_at: number;
+  status: "reserved" | "consumed" | "released";
+  expires_at: string;
+};
+
 export type Photo = {
   id: string;
   event_id: string;

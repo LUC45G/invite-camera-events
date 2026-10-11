@@ -8,11 +8,12 @@ cloudinary.config({
 });
 
 // Firma para subida directa firmada: el cliente envía timestamp + folder a Cloudinary.
-export function signUpload(folder: string) {
+export function signUpload(folder: string, publicId: string) {
   const timestamp = Math.round(Date.now() / 1000);
   const paramsToSign = {
     timestamp: String(timestamp),
     folder,
+    public_id: publicId,
   };
   const signature = cloudinary.utils.api_sign_request(
     paramsToSign,

@@ -24,11 +24,12 @@ const input = {name: "Internal name", starts_at: "2027-11-05T20:00:00-03:00", re
 const migration = readFileSync(new URL("../db/migrations/003-public-upload-sessions.sql", import.meta.url), "utf8");
 let event;
 const openSession = (extra = {}) => sessions.POST(request({qr: event.public_qr_token, slug: event.slug, accessMode: "public_qr", ...extra}));
+const authorize = async (sessionToken) => { const response = await sign.POST(request({sessionToken})); const data = await response.json(); return { response, data }; };
 
 test.before(async () => {
   state.db = db;
   await db.exec(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', ""));
-  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql"]) {
+  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql"]) {
     await db.exec(readFileSync(new URL(`../db/migrations/${filename}`, import.meta.url), "utf8"));
   }
 });
@@ -72,7 +73,7 @@ test("tokens, slugs y sesiones de otros modos o eventos no se mezclan", async ()
   assert.equal((await sessions.POST(request({qr: "family-token"}))).status, 403);
   assert.equal((await openSession({sessionToken: "family-session"})).status, 409);
   assert.equal((await sign.POST(request({sessionToken: "family-session"}))).status, 403);
-  assert.equal((await complete.POST(request({sessionToken: "family-session", publicId: "wrong"}))).status, 403);
+  assert.equal((await complete.POST(request({sessionToken: "family-session", authorizationToken: "fake-authorization-token", publicId: "wrong"}))).status, 403);
   // A session predating an installation reset must not resume in the new event.
   await db.exec("ALTER TABLE upload_sessions DROP CONSTRAINT upload_sessions_event_id_fkey");
   try {
@@ -87,12 +88,15 @@ test("tokens, slugs y sesiones de otros modos o eventos no se mezclan", async ()
 test("el consumo público es por sesión, persiste al moderar/borrar y no supera el cupo concurrentemente", async () => {
   await db.exec("UPDATE events SET max_photos_per_session = 1");
   const first = await (await openSession()).json(); const second = await (await openSession()).json();
-  assert.equal((await sign.POST(request({sessionToken: first.sessionToken}))).status, 200);
-  const responses = await Promise.all(["one", "two"].map(publicId => complete.POST(request({sessionToken: first.sessionToken, publicId}))));
-  assert.deepEqual(responses.map(r => r.status).sort(), [200, 409]);
+  const firstAuthorization = await authorize(first.sessionToken);
+  assert.equal(firstAuthorization.response.status, 200);
   assert.equal((await sign.POST(request({sessionToken: first.sessionToken}))).status, 409);
-  assert.equal((await sign.POST(request({sessionToken: second.sessionToken}))).status, 200);
-  assert.equal((await complete.POST(request({sessionToken: second.sessionToken, publicId: "second"}))).status, 200);
+  assert.equal((await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: firstAuthorization.data.authorizationToken, publicId: firstAuthorization.data.publicId}))).status, 200);
+  assert.equal((await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: firstAuthorization.data.authorizationToken, publicId: firstAuthorization.data.publicId}))).status, 200);
+  assert.equal((await sign.POST(request({sessionToken: first.sessionToken}))).status, 409);
+  const secondAuthorization = await authorize(second.sessionToken);
+  assert.equal(secondAuthorization.response.status, 200);
+  assert.equal((await complete.POST(request({sessionToken: second.sessionToken, authorizationToken: secondAuthorization.data.authorizationToken, publicId: secondAuthorization.data.publicId}))).status, 200);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM photos WHERE event_id = $1 AND table_qr_id IS NULL", [event.id])).rows[0].n, 2);
   await db.exec("DELETE FROM photos");
   assert.equal((await (await openSession({sessionToken: first.sessionToken})).json()).remaining, 0);
@@ -100,9 +104,10 @@ test("el consumo público es por sesión, persiste al moderar/borrar y no supera
 
 test("las fotos públicas conservan moderación, proyección, galería y exportación", async () => {
   const first = await (await openSession()).json();
-  const response = await complete.POST(request({sessionToken: first.sessionToken, publicId: "public-photo"}));
+  const authorization = await authorize(first.sessionToken);
+  const response = await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: authorization.data.authorizationToken, publicId: authorization.data.publicId}));
   const {id} = await response.json();
-  assert.equal((await complete.POST(request({sessionToken: first.sessionToken, publicId: "public-photo"}))).status, 200);
+  assert.equal((await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: authorization.data.authorizationToken, publicId: authorization.data.publicId}))).status, 200);
   assert.equal((await db.query("SELECT photo_count FROM upload_sessions")).rows[0].photo_count, 1);
   const pending = await (await moderation.GET(new Request(`http://local/api?slug=${event.slug}`))).json();
   assert.equal(pending.photos[0].status, "pending");
@@ -137,4 +142,22 @@ test("ruta principal pública responde 404 y render de carga/admin omite invitac
   assert.doesNotMatch(camera, /Invitación|Vincularse|Familia/);
   const panel = renderToStaticMarkup(createElement(AdminModeration, {slug: event.slug, eventName: event.name, accessMode: "public_qr", publicToken: event.public_qr_token, sessionLimit: 24}));
   assert.match(panel, /QR único/); assert.doesNotMatch(panel, /QRs e invitaciones|Confirmaciones de asistencia/);
+});
+
+test("una autorización previa puede finalizar después del cierre y la pausa", async () => {
+  const first = await (await openSession()).json();
+  const authorization = await authorize(first.sessionToken);
+  assert.equal((await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: authorization.data.authorizationToken, publicId: "recurso-manipulado"}))).status, 409);
+  await db.exec("UPDATE events SET upload_open = false, upload_ends_at = now() - interval '1 second'");
+  assert.equal((await complete.POST(request({sessionToken: first.sessionToken, authorizationToken: authorization.data.authorizationToken, publicId: authorization.data.publicId}))).status, 200);
+});
+
+test("una reserva vencida libera el cupo para reintentar", async () => {
+  await db.exec("UPDATE events SET max_photos_per_session = 1");
+  const first = await (await openSession()).json();
+  const authorization = await authorize(first.sessionToken);
+  assert.equal(authorization.response.status, 200);
+  await db.exec("UPDATE upload_authorizations SET expires_at = now() - interval '1 second'");
+  const retry = await authorize(first.sessionToken);
+  assert.equal(retry.response.status, 200);
 });

@@ -1,17 +1,13 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sql } from "@/lib/db";
 import { thumbnailUrl } from "@/lib/cloudinary";
 import { broadcastPhotoAdded } from "@/lib/sse";
-import {
-  uploadAllowance,
-  findSession,
-  getEventById,
-  touchSession,
-} from "@/lib/upload-db";
+import { findSession, getEventById, findUploadAuthorization, touchSession } from "@/lib/upload-db";
 
 const completeSchema = z.object({
   sessionToken: z.string().min(10).max(64),
+  authorizationToken: z.string().min(10).max(64),
   publicId: z.string().min(1).max(255),
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
@@ -22,85 +18,63 @@ const completeSchema = z.object({
 
 export async function POST(request: Request) {
   let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON" }, { status: 400 }); }
   const parsed = completeSchema.safeParse(body);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
-  }
+  if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
-  const { sessionToken, publicId, width, height, mime, sizeKb, nsfwScore } = parsed.data;
-
+  const { sessionToken, authorizationToken, publicId, width, height, mime, sizeKb, nsfwScore } = parsed.data;
   const session = await findSession(sessionToken);
-  if (!session) {
-    return NextResponse.json({ error: "Sesión inválida" }, { status: 403 });
-  }
-
+  if (!session) return NextResponse.json({ error: "Sesión inválida" }, { status: 403 });
   const event = await getEventById(session.event_id);
-  if (!event) {
-    return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!event.setup_complete || event.deletion_pending) return NextResponse.json({ error: "El evento no está disponible para cargar fotos" }, { status: 423 });
+
+  const authorization = await findUploadAuthorization(authorizationToken);
+  if (!authorization || authorization.event_id !== event.id || authorization.upload_session_id !== session.id) {
+    return NextResponse.json({ error: "Autorización inválida" }, { status: 403 });
   }
-  if (!event.setup_complete || event.deletion_pending) {
-    return NextResponse.json({ error: "El evento no está disponible para cargar fotos" }, { status: 423 });
-  }
-  if (!event.upload_open) {
-    return NextResponse.json(
-      { error: "La carga de fotos está cerrada" },
-      { status: 423 },
-    );
+  const folder = `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
+  if (publicId !== authorization.public_id && publicId !== `${folder}/${authorization.public_id}`) {
+    return NextResponse.json({ error: "El recurso no coincide con la autorización" }, { status: 409 });
   }
 
-  const allowance = await uploadAllowance(event, session);
-  if (!allowance) return NextResponse.json({ error: "Sesión inválida para este evento" }, { status: 403 });
-  // Idempotencia dentro de la sesión y evento autorizados.
-  const existing =
-    await sql`SELECT id FROM photos WHERE cloudinary_public_id = ${publicId} AND event_id = ${event.id} AND upload_session_id = ${session.id} LIMIT 1`;
-  if (existing.length > 0) {
-    return NextResponse.json({ ok: true, duplicate: true });
-  }
-
-  const { uploaded, limit } = allowance;
-  if (uploaded >= limit) {
-    return NextResponse.json(
-      { error: event.access_mode === "public_qr" ? "Alcanzaste el límite de fotos" : "Esta familia alcanzó el límite de fotos" },
-      { status: 409 },
-    );
-  }
+  const existing = await sql`SELECT id FROM photos WHERE authorization_id = ${authorization.id} LIMIT 1`;
+  if (existing.length) return NextResponse.json({ ok: true, duplicate: true, id: existing[0].id });
+  if (authorization.status !== "reserved") return NextResponse.json({ error: "La autorización ya no está disponible" }, { status: 409 });
 
   const thumb = thumbnailUrl(publicId);
-  // Full: misma transformación con ancho 1920
   const full = thumb.replace(/w_480/, "w_1920");
-
-  // Auto-aprueba si el score NSFW es menor a 50%; si no hay score o es >=50% queda pendiente para moderación
   const status = nsfwScore != null && nsfwScore < 0.5 ? "approved" : "pending";
-
   const inserted = await sql`
     WITH consumed AS (
+      UPDATE upload_authorizations SET status = 'consumed', consumed_at = now()
+      WHERE id = ${authorization.id} AND token = ${authorizationToken} AND status = 'reserved'
+      RETURNING id
+    ), bumped AS (
       UPDATE upload_sessions SET photo_count = photo_count + 1, last_seen_at = now()
-      WHERE id = ${session.id} AND event_id = ${event.id}
-        AND (${event.access_mode} <> 'public_qr' OR photo_count < ${limit})
+      WHERE id = ${session.id} AND ${event.access_mode} = 'public_qr'
+        AND EXISTS (SELECT 1 FROM consumed)
       RETURNING id
     )
     INSERT INTO photos (
-      event_id, table_qr_id, upload_session_id,
+      event_id, table_qr_id, upload_session_id, authorization_id,
       cloudinary_public_id, cloudinary_url, thumbnail_url,
       original_width, original_height, mime_type, size_kb,
       nsfw_score, status
     ) SELECT
-      ${session.event_id}, ${session.table_qr_id}, ${session.id},
+      ${session.event_id}, ${session.table_qr_id}, ${session.id}, ${authorization.id},
       ${publicId}, ${full}, ${thumb},
       ${width ?? null}, ${height ?? null}, ${mime ?? null}, ${sizeKb ?? null},
       ${nsfwScore ?? null}, ${status}
     FROM consumed
     RETURNING id`;
-  if (!inserted.length) return NextResponse.json({ error: "Alcanzaste el límite de fotos" }, { status: 409 });
+  if (!inserted.length) {
+    const duplicate = await sql`SELECT id FROM photos WHERE authorization_id = ${authorization.id} LIMIT 1`;
+    if (duplicate.length) return NextResponse.json({ ok: true, duplicate: true, id: duplicate[0].id });
+    return NextResponse.json({ error: "La autorización ya no está disponible" }, { status: 409 });
+  }
   await touchSession(session.id);
-
   broadcastPhotoAdded({ id: inserted[0].id, url: thumb });
-
   return NextResponse.json({ ok: true, id: inserted[0].id });
 }
+

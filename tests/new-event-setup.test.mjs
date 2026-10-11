@@ -7,6 +7,8 @@ import { state, request } from "./helpers/setup-environment.mjs";
 const setup = await import("../app/api/admin/setup/route.ts");
 const rsvp = await import("../app/api/rsvp/route.ts");
 const session = await import("../app/api/upload/session/route.ts");
+const sign = await import("../app/api/upload/sign/route.ts");
+const complete = await import("../app/api/upload/complete/route.ts");
 const settings = await import("../app/api/admin/event/route.ts");
 const tables = await import("../app/api/admin/tables/route.ts");
 const db = new PGlite();
@@ -26,6 +28,7 @@ test.before(async () => {
   await db.exec(readFileSync(new URL("../db/migrations/003-public-upload-sessions.sql", import.meta.url), "utf8"));
   await db.exec(readFileSync(new URL("../db/migrations/004-invitation-message-contact.sql", import.meta.url), "utf8"));
   await db.exec(readFileSync(new URL("../db/migrations/005-family-pause.sql", import.meta.url), "utf8"));
+  await db.exec(readFileSync(new URL("../db/migrations/006-upload-authorizations.sql", import.meta.url), "utf8"));
 });
 test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE");
@@ -126,4 +129,20 @@ test("una familia pausada bloquea sesiones existentes y puede reactivarse sin ca
   assert.equal((await tables.PATCH(request({table_number: 1, upload_paused: false}))).status, 200);
   assert.equal((await session.POST(request({qr: family.qr_token, sessionToken: token}))).status, 200);
   assert.equal((await db.query("SELECT qr_token, upload_paused FROM table_qrs WHERE table_number = 1")).rows[0].qr_token, family.qr_token);
+});
+
+test("una familia reserva su último cupo entre sesiones y finaliza después del cierre", async () => {
+  await setup.PUT(request(input));
+  await db.exec("UPDATE events SET upload_starts_at = now() - interval '1 minute', upload_ends_at = now() + interval '1 hour'");
+  await db.exec("UPDATE table_qrs SET max_photos = 1 WHERE table_number = 1");
+  const family = (await db.query("SELECT qr_token FROM table_qrs WHERE table_number = 1")).rows[0];
+  await rsvp.POST(request({token: family.qr_token, name: "Familia uno", status: "accepted", guests: 2}));
+  const first = await (await session.POST(request({qr: family.qr_token, confirmed: true}))).json();
+  const second = await (await session.POST(request({qr: family.qr_token, confirmed: true}))).json();
+  const reservations = await Promise.all([first, second].map(async (item) => ({ item, response: await sign.POST(request({sessionToken: item.sessionToken})) })));
+  assert.deepEqual(reservations.map(({ response }) => response.status).sort(), [200, 409]);
+  const authorized = reservations.find(({ response }) => response.status === 200);
+  const authorization = await authorized.response.json();
+  await db.exec("UPDATE events SET upload_open = false, upload_ends_at = now() - interval '1 second'");
+  assert.equal((await complete.POST(request({sessionToken: authorized.item.sessionToken, authorizationToken: authorization.authorizationToken, publicId: authorization.publicId}))).status, 200);
 });

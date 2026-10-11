@@ -11,6 +11,9 @@ import {
   touchSession,
   uploadAllowance,
   isTableUploadPaused,
+  findTestRun,
+  createTestSession,
+  testRunHasPhoto,
 } from "@/lib/upload-db";
 import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
@@ -36,6 +39,31 @@ export async function POST(request: Request) {
   }
 
   const { qr, sessionToken, confirmed, slug, accessMode } = parsed.data;
+
+  const testRun = await findTestRun(qr);
+  if (testRun) {
+    const event = await getEventById(testRun.event_id);
+    if (!event || !slug || event.slug !== slug || !event.setup_complete || event.deletion_pending) {
+      return NextResponse.json({ error: "QR de prueba invÃ¡lido" }, { status: 403 });
+    }
+    if (testRun.status !== "active" || new Date(testRun.expires_at) <= new Date()) {
+      return NextResponse.json({ error: "El QR de prueba venciÃ³ o ya fue utilizado" }, { status: 410 });
+    }
+    let session = sessionToken ? await findSession(sessionToken) : null;
+    if (session && (session.event_id !== event.id || session.test_run_id !== testRun.id)) {
+      return NextResponse.json({ error: "La sesiÃ³n de prueba no coincide" }, { status: 409 });
+    }
+    session ??= await createTestSession(event.id, testRun.id, event.access_mode);
+    await touchSession(session.id);
+    const used = await testRunHasPhoto(testRun.id);
+    return NextResponse.json({
+      sessionToken: session.session_token,
+      photoCount: used ? 1 : 0,
+      remaining: used ? 0 : 1,
+      accessMode: event.access_mode,
+      testMode: true,
+    });
+  }
 
   if (accessMode === "public_qr") {
     const event = await findPublicQr(qr);

@@ -53,6 +53,17 @@ export type UploadSession = {
   photo_count: number;
   first_seen_at: string;
   last_seen_at: string;
+  test_run_id: string | null;
+};
+
+export type UploadTestRun = {
+  id: string;
+  event_id: string;
+  token: string;
+  status: "active" | "completed" | "cancelled" | "cleanup_pending";
+  expires_at: string;
+  created_at: string;
+  completed_at: string | null;
 };
 
 export type UploadAuthorization = {
@@ -65,6 +76,7 @@ export type UploadAuthorization = {
   signed_at: number;
   status: "reserved" | "consumed" | "released";
   expires_at: string;
+  test_run_id: string | null;
 };
 
 export type Photo = {

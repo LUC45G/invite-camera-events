@@ -1,4 +1,4 @@
-import { sql, type Event, type TableQr, type UploadAuthorization, type UploadSession } from "@/lib/db";
+import { sql, type Event, type TableQr, type UploadAuthorization, type UploadSession, type UploadTestRun } from "@/lib/db";
 import { randomBytes } from "node:crypto";
 
 // Utilidades de DB para el flujo de subida (fase 1).
@@ -44,6 +44,66 @@ export async function createSession(
 export async function findPublicQr(qrToken: string): Promise<Event | null> {
   const rows = await sql`SELECT * FROM events WHERE public_qr_token = ${qrToken} AND access_mode = 'public_qr' LIMIT 1`;
   return (rows[0] as Event) ?? null;
+}
+
+export async function findTestRun(token: string): Promise<UploadTestRun | null> {
+  const rows = await sql`SELECT * FROM upload_test_runs WHERE token = ${token} LIMIT 1`;
+  return (rows[0] as UploadTestRun) ?? null;
+}
+
+export async function findTestRunById(id: string): Promise<UploadTestRun | null> {
+  const rows = await sql`SELECT * FROM upload_test_runs WHERE id = ${id} LIMIT 1`;
+  return (rows[0] as UploadTestRun) ?? null;
+}
+
+export async function createTestRun(eventId: string): Promise<UploadTestRun> {
+  const token = randomBytes(32).toString("hex");
+  const rows = await sql`
+    INSERT INTO upload_test_runs (event_id, token, expires_at)
+    VALUES (${eventId}, ${token}, now() + interval '30 minutes')
+    RETURNING *`;
+  return rows[0] as UploadTestRun;
+}
+
+export async function createTestSession(eventId: string, testRunId: string, accessMode: Event["access_mode"]): Promise<UploadSession> {
+  const sessionToken = randomBytes(32).toString("hex");
+  const rows = await sql`
+    INSERT INTO upload_sessions (event_id, table_qr_id, session_token, access_mode, test_run_id)
+    VALUES (${eventId}, NULL, ${sessionToken}, ${accessMode}, ${testRunId})
+    RETURNING *`;
+  return rows[0] as UploadSession;
+}
+
+export async function testRunHasPhoto(testRunId: string): Promise<boolean> {
+  const rows = await sql`
+    SELECT 1 FROM photos p WHERE p.test_run_id = ${testRunId}
+    UNION ALL
+    SELECT 1 FROM upload_authorizations a WHERE a.test_run_id = ${testRunId} AND a.status = 'reserved'
+    LIMIT 1`;
+  return rows.length > 0;
+}
+
+export async function reserveTestUploadAuthorization(event: Event, session: UploadSession, publicId: string, signedAt: number, token: string): Promise<{ authorization: UploadAuthorization; uploaded: number; limit: number } | null> {
+  if (!session.test_run_id) return null;
+  const rows = await sql`
+    WITH lock AS (SELECT pg_advisory_xact_lock(hashtext(${session.test_run_id}))),
+    run AS (
+      SELECT id, event_id FROM upload_test_runs
+      WHERE id = ${session.test_run_id} AND event_id = ${event.id}
+        AND status = 'active' AND expires_at > now()
+    )
+    INSERT INTO upload_authorizations (token, event_id, upload_session_id, table_qr_id, public_id, signed_at, expires_at, test_run_id)
+    SELECT ${token}, event_id, ${session.id}, NULL, ${publicId}, ${signedAt}, now() + interval '30 minutes', id
+    FROM run CROSS JOIN lock
+    WHERE NOT EXISTS (SELECT 1 FROM photos WHERE test_run_id = run.id)
+      AND NOT EXISTS (SELECT 1 FROM upload_authorizations WHERE test_run_id = run.id AND status = 'reserved')
+    RETURNING *`;
+  if (!rows[0]) return null;
+  return { authorization: rows[0] as UploadAuthorization, uploaded: 0, limit: 1 };
+}
+
+export async function completeTestRun(testRunId: string): Promise<void> {
+  await sql`UPDATE upload_test_runs SET status = 'completed', completed_at = now() WHERE id = ${testRunId} AND status = 'active'`;
 }
 
 // Both signing and completion must validate the session's event and mode.

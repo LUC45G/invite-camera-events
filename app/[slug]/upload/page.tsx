@@ -15,6 +15,7 @@ export default async function UploadPage({ params, searchParams }: Props) {
 
   const query = await searchParams;
   const qr = typeof query.qr === "string" ? query.qr : "";
+  const testMode = query.test === "1";
 
   if (!qr) {
     return (
@@ -29,5 +30,5 @@ export default async function UploadPage({ params, searchParams }: Props) {
     );
   }
 
-  return <CameraUploader slug={slug} qr={qr} accessMode={configured.access_mode} />;
+  return <CameraUploader slug={slug} qr={qr} accessMode={configured.access_mode} testMode={testMode} />;
 }

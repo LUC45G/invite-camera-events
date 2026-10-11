@@ -16,6 +16,17 @@ CREATE TABLE IF NOT EXISTS events (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE TABLE IF NOT EXISTS upload_test_runs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  event_id UUID NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+  token VARCHAR(64) UNIQUE NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  CHECK (status IN ('active', 'completed', 'cancelled', 'cleanup_pending'))
+);
+
 -- QR por mesa (uno por mesa/familia; el token también es el token de invitación)
 CREATE TABLE IF NOT EXISTS table_qrs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,6 +61,7 @@ CREATE TABLE IF NOT EXISTS upload_sessions (
   first_seen_at TIMESTAMPTZ DEFAULT now(),
   last_seen_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE upload_sessions ADD COLUMN IF NOT EXISTS test_run_id UUID REFERENCES upload_test_runs(id) ON DELETE CASCADE;
 
 -- Fotos
 CREATE TABLE IF NOT EXISTS photos (
@@ -68,6 +80,7 @@ CREATE TABLE IF NOT EXISTS photos (
   nsfw_score FLOAT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+ALTER TABLE photos ADD COLUMN IF NOT EXISTS test_run_id UUID REFERENCES upload_test_runs(id) ON DELETE CASCADE;
 
 CREATE INDEX IF NOT EXISTS idx_photos_event ON photos(event_id);
 CREATE INDEX IF NOT EXISTS idx_photos_status ON photos(status);

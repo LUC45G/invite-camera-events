@@ -4,16 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type Props = { slug: string; qr: string; accessMode: "invitations" | "public_qr" };
+type Props = { slug: string; qr: string; accessMode: "invitations" | "public_qr"; testMode?: boolean };
 
 type Phase = "starting" | "confirm" | "locked" | "camera" | "preview" | "uploading" | "done";
 type PendingCompletion = { authorizationToken: string; publicId: string; remaining: number | null; width?: number; height?: number; mime?: string; sizeKb?: number; nsfwScore?: number };
 
 const SESSION_KEY = "upload_session_token";
 
-export function CameraUploader({ slug, qr, accessMode }: Props) {
+export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props) {
   const router = useRouter();
-  const storageKey = `${SESSION_KEY}:${slug}:${accessMode}`;
+  const storageKey = `${SESSION_KEY}:${slug}:${accessMode}:${testMode ? "test" : "real"}`;
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -48,6 +48,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
         tableNumber?: number;
         tableName?: string;
         lockedTable?: { tableNumber: number | null; tableName: string };
+        testMode?: boolean;
       };
     };
   }
@@ -103,7 +104,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
         }
         setTableNumber(data.tableNumber ?? null);
         setTableName(data.tableName ?? null);
-        if (accessMode === "public_qr" && data.sessionToken) {
+        if ((accessMode === "public_qr" || testMode || data.testMode) && data.sessionToken) {
           localStorage.setItem(storageKey, data.sessionToken);
           setSessionToken(data.sessionToken);
           setRemaining(data.remaining ?? null);
@@ -330,7 +331,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
           <p className="font-sans text-base text-ink/55">Abriendo cámara…</p>
         )}
 
-        {phase === "confirm" && (
+        {phase === "confirm" && !testMode && (
           <div className="flex max-w-[400px] flex-col items-center gap-4 text-center">
             <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
               ¿Vincularse a la {tableName ?? `familia ${tableNumber ?? ""}`}?

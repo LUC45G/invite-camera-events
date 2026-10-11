@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { QrSection } from "@/components/QrSection";
 import { PublicQrPanel } from "@/components/PublicQrPanel";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { AdminTestUploadPanel } from "@/components/AdminTestUploadPanel";
 import type { UploadWindowState } from "@/lib/upload-window";
 import {
   AdminDangerPanel,
@@ -262,6 +263,8 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
             </div>
           </div>
         </CollapsibleSection>
+
+        <AdminTestUploadPanel slug={slug} />
 
         {/* 2. Fotos: pendientes, aprobadas y rechazadas */}
         <CollapsibleSection title="Pendientes" count={pending.length} defaultOpen={true}>

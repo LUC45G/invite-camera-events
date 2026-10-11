@@ -20,6 +20,7 @@ export async function GET(request: Request) {
         JOIN events e ON e.id = p.event_id
         WHERE e.slug = ${slug}
           AND p.status = 'approved'
+          AND p.test_run_id IS NULL
           AND p.thumbnail_url IS NOT NULL
           AND p.created_at > ${after}
         ORDER BY p.created_at ASC
@@ -30,6 +31,7 @@ export async function GET(request: Request) {
         JOIN events e ON e.id = p.event_id
         WHERE e.slug = ${slug}
           AND p.status = 'approved'
+          AND p.test_run_id IS NULL
           AND p.thumbnail_url IS NOT NULL
         ORDER BY p.created_at ASC
         LIMIT 200`;

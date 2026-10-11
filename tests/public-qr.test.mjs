@@ -15,6 +15,7 @@ const photos = await import("../app/api/photos/route.ts");
 const tables = await import("../app/api/admin/tables/route.ts");
 const rsvp = await import("../app/api/rsvp/route.ts");
 const exportPhotos = await import("../app/api/admin/export/route.ts");
+const testUpload = await import("../app/api/admin/test-upload/route.ts");
 const galleryPage = (await import("../app/[slug]/galeria/page.tsx")).default;
 const invitationPage = (await import("../app/[slug]/page.tsx")).default;
 const uploadPage = (await import("../app/[slug]/upload/page.tsx")).default;
@@ -30,7 +31,7 @@ const authorize = async (sessionToken) => { const response = await sign.POST(req
 test.before(async () => {
   state.db = db;
   await db.exec(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', ""));
-  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql"]) {
+  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql", "007-temporary-test-upload.sql"]) {
     await db.exec(readFileSync(new URL(`../db/migrations/${filename}`, import.meta.url), "utf8"));
   }
 });
@@ -177,4 +178,42 @@ test("a revealed gallery keeps approved photos when another photo is pending", a
 
   const rendered = await galleryPage({params: Promise.resolve({slug: event.slug})});
   assert.match(JSON.stringify(rendered), /cloudinary_url/);
+});
+
+test("temporary QR isolates one upload, applies the NSFW threshold, and cleans up", async () => {
+  await db.exec("UPDATE events SET upload_starts_at = now() - interval '2 days', upload_ends_at = now() - interval '1 day'");
+  const created = await testUpload.POST(request({slug: event.slug, action: "create"}));
+  assert.equal(created.status, 200);
+  const run = (await created.json()).run;
+
+  const entry = await sessions.POST(request({qr: run.token, slug: event.slug, accessMode: "public_qr"}));
+  assert.equal(entry.status, 200);
+  const sessionData = await entry.json();
+  const authorization = await sign.POST(request({sessionToken: sessionData.sessionToken}));
+  const authorizationData = await authorization.json();
+  assert.equal(authorization.status, 200, JSON.stringify(authorizationData));
+  const completed = await complete.POST(request({sessionToken: sessionData.sessionToken, authorizationToken: authorizationData.authorizationToken, publicId: authorizationData.publicId, nsfwScore: 0.69}));
+  assert.equal(completed.status, 200);
+
+  const live = await (await photos.GET(new Request(`http://local/api?slug=${event.slug}&mode=live`))).json();
+  assert.equal(live.photos.length, 0);
+  const testPhotos = await (await testUpload.GET(new Request(`http://local/api?slug=${event.slug}`))).json();
+  assert.equal(testPhotos.photos.length, 1);
+  assert.equal(testPhotos.photos[0].status, "approved");
+  assert.equal((await sign.POST(request({sessionToken: sessionData.sessionToken}))).status, 410);
+
+  state.cloudResult = new Error("cloudinary unavailable");
+  const failedCleanup = await testUpload.POST(request({slug: event.slug, action: "cleanup", runId: run.id}));
+  assert.equal(failedCleanup.status, 502);
+  state.cloudResult = null;
+  assert.equal((await testUpload.POST(request({slug: event.slug, action: "cleanup", runId: run.id}))).status, 200);
+  assert.equal((await (await testUpload.GET(new Request(`http://local/api?slug=${event.slug}`))).json()).run, null);
+
+  const thresholdRun = (await (await testUpload.POST(request({slug: event.slug, action: "create"}))).json()).run;
+  const thresholdSession = await (await sessions.POST(request({qr: thresholdRun.token, slug: event.slug, accessMode: "public_qr"}))).json();
+  const thresholdAuthorization = await (await sign.POST(request({sessionToken: thresholdSession.sessionToken}))).json();
+  await complete.POST(request({sessionToken: thresholdSession.sessionToken, authorizationToken: thresholdAuthorization.authorizationToken, publicId: thresholdAuthorization.publicId, nsfwScore: 0.7}));
+  const thresholdPhotos = await (await testUpload.GET(new Request(`http://local/api?slug=${event.slug}`))).json();
+  assert.equal(thresholdPhotos.photos[0].status, "pending");
+  assert.equal((await testUpload.POST(request({slug: event.slug, action: "cleanup", runId: thresholdRun.id}))).status, 200);
 });

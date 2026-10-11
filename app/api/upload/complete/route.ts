@@ -3,7 +3,7 @@ import { z } from "zod";
 import { sql } from "@/lib/db";
 import { thumbnailUrl } from "@/lib/cloudinary";
 import { broadcastPhotoAdded } from "@/lib/sse";
-import { findSession, getEventById, findUploadAuthorization, touchSession } from "@/lib/upload-db";
+import { findSession, getEventById, findUploadAuthorization, touchSession, findTestRunById, completeTestRun } from "@/lib/upload-db";
 
 const completeSchema = z.object({
   sessionToken: z.string().min(10).max(64),
@@ -33,7 +33,12 @@ export async function POST(request: Request) {
   if (!authorization || authorization.event_id !== event.id || authorization.upload_session_id !== session.id) {
     return NextResponse.json({ error: "Autorización inválida" }, { status: 403 });
   }
-  const folder = `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
+  const testRun = authorization.test_run_id ? await findTestRunById(authorization.test_run_id) : null;
+  const testMode = Boolean(authorization.test_run_id);
+  if (testMode && (!testRun || testRun.event_id !== event.id || (testRun.status !== "active" && testRun.status !== "completed"))) {
+    return NextResponse.json({ error: "La prueba ya no estÃ¡ disponible" }, { status: 410 });
+  }
+  const folder = testMode ? `weddings/${event.slug}/test/${authorization.test_run_id}` : `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
   if (publicId !== authorization.public_id && publicId !== `${folder}/${authorization.public_id}`) {
     return NextResponse.json({ error: "El recurso no coincide con la autorización" }, { status: 409 });
   }
@@ -44,7 +49,7 @@ export async function POST(request: Request) {
 
   const thumb = thumbnailUrl(publicId);
   const full = thumb.replace(/w_480/, "w_1920");
-  const status = nsfwScore != null && nsfwScore < 0.5 ? "approved" : "pending";
+  const status = nsfwScore != null && nsfwScore < 0.7 ? "approved" : "pending";
   const inserted = await sql`
     WITH consumed AS (
       UPDATE upload_authorizations SET status = 'consumed', consumed_at = now()
@@ -57,12 +62,12 @@ export async function POST(request: Request) {
       RETURNING id
     )
     INSERT INTO photos (
-      event_id, table_qr_id, upload_session_id, authorization_id,
+      event_id, table_qr_id, upload_session_id, authorization_id, test_run_id,
       cloudinary_public_id, cloudinary_url, thumbnail_url,
       original_width, original_height, mime_type, size_kb,
       nsfw_score, status
     ) SELECT
-      ${session.event_id}, ${session.table_qr_id}, ${session.id}, ${authorization.id},
+      ${session.event_id}, ${session.table_qr_id}, ${session.id}, ${authorization.id}, ${authorization.test_run_id},
       ${publicId}, ${full}, ${thumb},
       ${width ?? null}, ${height ?? null}, ${mime ?? null}, ${sizeKb ?? null},
       ${nsfwScore ?? null}, ${status}
@@ -74,6 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "La autorización ya no está disponible" }, { status: 409 });
   }
   await touchSession(session.id);
+  if (testMode && authorization.test_run_id) await completeTestRun(authorization.test_run_id);
   broadcastPhotoAdded({ id: inserted[0].id, url: thumb });
   return NextResponse.json({ ok: true, id: inserted[0].id });
 }

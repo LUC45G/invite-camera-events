@@ -10,6 +10,8 @@ import {
   touchSession,
   isTableUploadPaused,
   reserveUploadAuthorization,
+  reserveTestUploadAuthorization,
+  findTestRunById,
 } from "@/lib/upload-db";
 import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
@@ -42,15 +44,20 @@ export async function POST(request: Request) {
   if (!event.setup_complete || event.deletion_pending) {
     return NextResponse.json({ error: "El evento no está disponible para cargar fotos" }, { status: 423 });
   }
+  const testRun = session.test_run_id ? await findTestRunById(session.test_run_id) : null;
+  const testMode = Boolean(session.test_run_id);
+  if (testMode && (!testRun || testRun.event_id !== event.id || testRun.status !== "active" || new Date(testRun.expires_at) <= new Date())) {
+    return NextResponse.json({ error: "El QR de prueba venciÃ³ o ya fue utilizado" }, { status: 410 });
+  }
   const uploadWindow = getUploadWindowState(event);
-  if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
+  if (!testMode && !uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
 
   const allowance = await uploadAllowance(event, session);
-  if (!allowance) return NextResponse.json({ error: "Sesión inválida para este evento" }, { status: 403 });
-  if (session.table_qr_id && await isTableUploadPaused(session.table_qr_id, event.id)) {
+  if (!allowance && !testMode) return NextResponse.json({ error: "Sesión inválida para este evento" }, { status: 403 });
+  if (!testMode && session.table_qr_id && await isTableUploadPaused(session.table_qr_id, event.id)) {
     return NextResponse.json({ error: "La carga de esta familia está pausada" }, { status: 423 });
   }
-  const { uploaded, limit } = allowance;
+  const { uploaded, limit } = testMode ? { uploaded: 0, limit: 1 } : allowance!;
   if (uploaded >= limit) {
     return NextResponse.json(
       { error: event.access_mode === "public_qr" ? "Alcanzaste el límite de fotos" : "Esta familia alcanzó el límite de fotos" },
@@ -60,11 +67,13 @@ export async function POST(request: Request) {
 
   await touchSession(session.id);
 
-  const folder = `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
+  const folder = testMode ? `weddings/${event.slug}/test/${session.test_run_id}` : `weddings/${event.slug}/${event.access_mode === "public_qr" ? "public" : "table"}`;
   const authorizationToken = randomBytes(32).toString("hex");
   const publicId = `upload-${authorizationToken}`;
   const { timestamp, signature, apiKey } = signUpload(folder, publicId);
-  const reservation = await reserveUploadAuthorization(event, session, publicId, timestamp, authorizationToken);
+  const reservation = testMode
+    ? await reserveTestUploadAuthorization(event, session, publicId, timestamp, authorizationToken)
+    : await reserveUploadAuthorization(event, session, publicId, timestamp, authorizationToken);
   if (!reservation) return NextResponse.json({ error: "Alcanzaste el lÃ­mite de fotos" }, { status: 409 });
 
   return NextResponse.json({

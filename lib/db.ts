@@ -41,6 +41,7 @@ export type TableQr = {
   table_number: number;
   qr_token: string;
   max_photos: number;
+  upload_paused: boolean;
 };
 
 export type UploadSession = {
@@ -52,6 +53,30 @@ export type UploadSession = {
   photo_count: number;
   first_seen_at: string;
   last_seen_at: string;
+  test_run_id: string | null;
+};
+
+export type UploadTestRun = {
+  id: string;
+  event_id: string;
+  token: string;
+  status: "active" | "completed" | "cancelled" | "cleanup_pending";
+  expires_at: string;
+  created_at: string;
+  completed_at: string | null;
+};
+
+export type UploadAuthorization = {
+  id: string;
+  token: string;
+  event_id: string;
+  upload_session_id: string;
+  table_qr_id: string | null;
+  public_id: string;
+  signed_at: number;
+  status: "reserved" | "consumed" | "released";
+  expires_at: string;
+  test_run_id: string | null;
 };
 
 export type Photo = {

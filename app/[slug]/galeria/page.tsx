@@ -20,14 +20,7 @@ export default async function GalleryPage({ params }: Props) {
   const revealAt = events[0]?.reveal_at ? new Date(events[0].reveal_at) : null;
   const now = new Date();
 
-  const pending = (await sql`
-    SELECT count(*) AS n FROM photos p
-    JOIN events e ON e.id = p.event_id
-    WHERE e.slug = ${slug} AND p.status = 'pending'
-  `) as { n: string }[];
-
-  const open =
-    revealAt !== null && now >= revealAt && Number(pending[0]?.n ?? 1) === 0;
+  const open = revealAt !== null && now >= revealAt;
 
   if (!open) {
     return (
@@ -48,10 +41,10 @@ export default async function GalleryPage({ params }: Props) {
   }
 
   const photos = (await sql`
-    SELECT id, cloudinary_url, thumbnail_url FROM photos p
+    SELECT p.id, p.cloudinary_url, p.thumbnail_url FROM photos p
     JOIN events e ON e.id = p.event_id
     WHERE e.slug = ${slug} AND p.status = 'approved'
-    ORDER BY created_at ASC
+    ORDER BY p.created_at ASC
   `) as GalleryPhoto[];
 
   return (

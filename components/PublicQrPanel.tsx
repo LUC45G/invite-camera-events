@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 
-export function PublicQrPanel({ slug, token, limit }: { slug: string; token: string; limit: number }) {
+export function PublicQrPanel({ slug, token, limit, locked = false }: { slug: string; token: string; limit: number; locked?: boolean }) {
   const [qr, setQr] = useState<{ image: string; url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [savedLimit, setSavedLimit] = useState(limit);
@@ -56,8 +56,8 @@ export function PublicQrPanel({ slug, token, limit }: { slug: string; token: str
     <p className="text-sm text-ink/70">Compartí este QR para cargar fotos al mismo álbum, sin invitación ni RSVP. Cada sesión tiene un cupo de {savedLimit} fotos.</p>
     <p className="mt-2 text-sm text-ink/70">El cupo corresponde a la sesión del navegador: borrar sus datos o usar otro navegador permite crear otra sesión. No identifica infaliblemente un dispositivo.</p>
     <form onSubmit={saveLimit} className="mt-4 flex flex-wrap items-end gap-3">
-      <label className="flex flex-col gap-2 text-sm">Fotos por sesión<input type="number" required min={1} max={100} value={draftLimit} onChange={(e) => setDraftLimit(Number(e.target.value))} className="w-24 rounded-sm border border-ink/20 bg-ivory px-3 py-2" /></label>
-      <button disabled={saving} className="rounded-sm border border-ink/20 px-4 py-2 disabled:opacity-50">{saving ? "Guardando…" : "Guardar cupo"}</button>
+      <label className="flex flex-col gap-2 text-sm">Fotos por sesión<input type="number" required min={1} max={100} value={draftLimit} onChange={(e) => setDraftLimit(Number(e.target.value))} disabled={locked} className="w-24 rounded-sm border border-ink/20 bg-ivory px-3 py-2" /></label>
+      <button disabled={saving || locked} className="rounded-sm border border-ink/20 px-4 py-2 disabled:opacity-50">{saving ? "Guardando…" : "Guardar cupo"}</button>
     </form>
     {notice && <p role="status" className="mt-2 text-sm">{notice}</p>}
     {error && <p role="alert" className="mt-3">{error}</p>}

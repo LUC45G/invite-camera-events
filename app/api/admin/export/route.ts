@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   const photos = (await sql`
     SELECT cloudinary_url FROM photos p
     JOIN events e ON e.id = p.event_id
-    WHERE e.id = ${event.id} AND p.status = 'approved'
+    WHERE e.id = ${event.id} AND p.status = 'approved' AND p.test_run_id IS NULL
     ORDER BY p.created_at ASC
   `) as { cloudinary_url: string }[];
 

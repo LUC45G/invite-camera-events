@@ -4,15 +4,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-type Props = { slug: string; qr: string; accessMode: "invitations" | "public_qr" };
+type Props = { slug: string; qr: string; accessMode: "invitations" | "public_qr"; testMode?: boolean };
 
 type Phase = "starting" | "confirm" | "locked" | "camera" | "preview" | "uploading" | "done";
+type PendingCompletion = { authorizationToken: string; publicId: string; remaining: number | null; width?: number; height?: number; mime?: string; sizeKb?: number; nsfwScore?: number };
 
 const SESSION_KEY = "upload_session_token";
 
-export function CameraUploader({ slug, qr, accessMode }: Props) {
+export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props) {
   const router = useRouter();
-  const storageKey = `${SESSION_KEY}:${slug}:${accessMode}`;
+  const storageKey = `${SESSION_KEY}:${slug}:${accessMode}:${testMode ? "test" : "real"}`;
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -27,6 +28,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
   const [tableNumber, setTableNumber] = useState<number | null>(null);
   const [tableName, setTableName] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [pendingCompletion, setPendingCompletion] = useState<PendingCompletion | null>(null);
 
   async function postSession(body: Record<string, unknown>) {
     const res = await fetch("/api/upload/session", {
@@ -46,6 +48,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
         tableNumber?: number;
         tableName?: string;
         lockedTable?: { tableNumber: number | null; tableName: string };
+        testMode?: boolean;
       };
     };
   }
@@ -101,7 +104,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
         }
         setTableNumber(data.tableNumber ?? null);
         setTableName(data.tableName ?? null);
-        if (accessMode === "public_qr" && data.sessionToken) {
+        if ((accessMode === "public_qr" || testMode || data.testMode) && data.sessionToken) {
           localStorage.setItem(storageKey, data.sessionToken);
           setSessionToken(data.sessionToken);
           setRemaining(data.remaining ?? null);
@@ -234,8 +237,18 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
     if (!sessionToken) return;
     setUploading(true);
     setError(null);
+    let failedAfterCloudinary: PendingCompletion | null = null;
 
     try {
+      if (pendingCompletion) {
+        const retry = await fetch("/api/upload/complete", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionToken, ...pendingCompletion }) });
+        const retryData = await retry.json();
+        if (!retry.ok) throw new Error(retryData.error ?? "No se pudo registrar la foto");
+        setPendingCompletion(null);
+        setRemaining(typeof pendingCompletion.remaining === "number" ? pendingCompletion.remaining - 1 : null);
+        setPhase("done");
+        return;
+      }
       const signRes = await fetch("/api/upload/sign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -250,6 +263,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
       form.append("timestamp", String(sign.timestamp));
       form.append("signature", sign.signature);
       form.append("folder", sign.folder);
+      form.append("public_id", sign.publicId);
 
       const cloudRes = await fetch(
         `https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`,
@@ -257,12 +271,15 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
       );
       if (!cloudRes.ok) throw new Error("Cloudinary rechazó la subida");
       const cloud = await cloudRes.json();
+      failedAfterCloudinary = { authorizationToken: sign.authorizationToken, publicId: cloud.public_id, remaining: sign.remaining, width: cloud.width, height: cloud.height, mime: "image/jpeg", sizeKb: Math.round(cloud.bytes / 1024), nsfwScore: score ?? undefined };
+      setPendingCompletion(failedAfterCloudinary);
 
       const completeRes = await fetch("/api/upload/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           sessionToken,
+          authorizationToken: sign.authorizationToken,
           publicId: cloud.public_id,
           width: cloud.width,
           height: cloud.height,
@@ -275,11 +292,12 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
       if (!completeRes.ok) throw new Error(complete.error ?? "No se pudo registrar la foto");
 
       setRemaining(typeof sign.remaining === "number" ? sign.remaining - 1 : null);
+      setPendingCompletion(null);
       setPhase("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al subir la foto");
-      // reanudar cámara para reintentar
-      startCamera();
+      if (failedAfterCloudinary || pendingCompletion) setPhase("preview");
+      else startCamera();
     } finally {
       setUploading(false);
     }
@@ -313,7 +331,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
           <p className="font-sans text-base text-ink/55">Abriendo cámara…</p>
         )}
 
-        {phase === "confirm" && (
+        {phase === "confirm" && !testMode && (
           <div className="flex max-w-[400px] flex-col items-center gap-4 text-center">
             <h1 className="font-serif text-4xl text-ink" style={{ textWrap: "balance" }}>
               ¿Vincularse a la {tableName ?? `familia ${tableNumber ?? ""}`}?
@@ -416,6 +434,7 @@ export function CameraUploader({ slug, qr, accessMode }: Props) {
               type="button"
               onClick={() => {
                 setPreviewBlob(null);
+                setPendingCompletion(null);
                 startCamera();
               }}
               className="rounded-sm border border-ink/20 bg-ivory px-4 py-2.5 text-lg text-ink transition-colors hover:border-ink/40"

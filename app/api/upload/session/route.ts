@@ -10,7 +10,12 @@ import {
   getTableDisplay,
   touchSession,
   uploadAllowance,
+  isTableUploadPaused,
+  findTestRun,
+  createTestSession,
+  testRunHasPhoto,
 } from "@/lib/upload-db";
+import { getUploadWindowState, uploadWindowError } from "@/lib/upload-window";
 
 const sessionSchema = z.object({
   qr: z.string().min(10).max(64),
@@ -35,12 +40,39 @@ export async function POST(request: Request) {
 
   const { qr, sessionToken, confirmed, slug, accessMode } = parsed.data;
 
+  const testRun = await findTestRun(qr);
+  if (testRun) {
+    const event = await getEventById(testRun.event_id);
+    if (!event || !slug || event.slug !== slug || !event.setup_complete || event.deletion_pending) {
+      return NextResponse.json({ error: "QR de prueba invÃ¡lido" }, { status: 403 });
+    }
+    if (testRun.status !== "active" || new Date(testRun.expires_at) <= new Date()) {
+      return NextResponse.json({ error: "El QR de prueba venciÃ³ o ya fue utilizado" }, { status: 410 });
+    }
+    let session = sessionToken ? await findSession(sessionToken) : null;
+    if (session && (session.event_id !== event.id || session.test_run_id !== testRun.id)) {
+      return NextResponse.json({ error: "La sesiÃ³n de prueba no coincide" }, { status: 409 });
+    }
+    session ??= await createTestSession(event.id, testRun.id, event.access_mode);
+    await touchSession(session.id);
+    const used = await testRunHasPhoto(testRun.id);
+    return NextResponse.json({
+      sessionToken: session.session_token,
+      photoCount: used ? 1 : 0,
+      remaining: used ? 0 : 1,
+      accessMode: event.access_mode,
+      testMode: true,
+    });
+  }
+
   if (accessMode === "public_qr") {
     const event = await findPublicQr(qr);
     if (!slug || !event || event.slug !== slug) return NextResponse.json({ error: "QR inválido" }, { status: 403 });
-    if (!event.setup_complete || event.deletion_pending || !event.upload_open) {
+    if (!event.setup_complete || event.deletion_pending) {
       return NextResponse.json({ error: "La carga de fotos no está disponible" }, { status: 423 });
     }
+    const uploadWindow = getUploadWindowState(event);
+    if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
     let session = sessionToken ? await findSession(sessionToken) : null;
     if (session && (session.event_id !== event.id || session.access_mode !== "public_qr" || session.table_qr_id !== null)) {
       return NextResponse.json({ error: "La sesión pertenece a otro evento o modalidad" }, { status: 409 });
@@ -67,11 +99,10 @@ export async function POST(request: Request) {
   if (!event.setup_complete || event.deletion_pending) {
     return NextResponse.json({ error: "El organizador debe completar la configuración del evento" }, { status: 423 });
   }
-  if (!event.upload_open) {
-    return NextResponse.json(
-      { error: "La carga de fotos está cerrada" },
-      { status: 423 },
-    );
+  const uploadWindow = getUploadWindowState(event);
+  if (!uploadWindow.canStartNewUpload) return NextResponse.json(uploadWindowError(uploadWindow), { status: 423 });
+  if (await isTableUploadPaused(table.id, event.id)) {
+    return NextResponse.json({ error: "La carga de esta familia estÃ¡ pausada" }, { status: 423 });
   }
 
   // Solo las familias que confirmaron asistencia pueden usar la cámara.

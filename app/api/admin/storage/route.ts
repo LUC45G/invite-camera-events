@@ -61,7 +61,7 @@ export async function GET(request: Request) {
       MAX(p.created_at) AS last_upload
     FROM photos p
     JOIN events e ON e.id = p.event_id
-    WHERE e.id = ${event.id}
+    WHERE e.id = ${event.id} AND p.test_run_id IS NULL
   `) as {
     total: string | number;
     approved: string | number;

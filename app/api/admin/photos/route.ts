@@ -26,7 +26,7 @@ export async function GET(request: Request) {
            p.status, p.nsfw_score, p.created_at
     FROM photos p
     JOIN events e ON e.id = p.event_id
-    WHERE e.id = ${event.id}
+    WHERE e.id = ${event.id} AND p.test_run_id IS NULL
     ORDER BY
       CASE p.status WHEN 'pending' THEN 0 ELSE 1 END,
       p.nsfw_score DESC NULLS LAST,
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   const stats = await sql`
     SELECT status, count(*) AS n FROM photos p
     JOIN events e ON e.id = p.event_id
-    WHERE e.id = ${event.id}
+    WHERE e.id = ${event.id} AND p.test_run_id IS NULL
     GROUP BY status`;
 
   return NextResponse.json({ photos, stats });
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
-  const rows = await sql`SELECT * FROM photos WHERE id = ${id} AND event_id = ${event.id} LIMIT 1`;
+  const rows = await sql`SELECT * FROM photos WHERE id = ${id} AND event_id = ${event.id} AND test_run_id IS NULL LIMIT 1`;
   const photo = rows[0] as
     | { id: string; cloudinary_public_id: string; status: string; event_id: string }
     | undefined;

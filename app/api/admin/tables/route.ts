@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
 import { getAdminInvitationEvent as getAdminEvent } from "@/lib/event-context";
+import { getUploadWindowState } from "@/lib/upload-window";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,12 @@ export async function GET() {
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
 
   const rows = (await sql`
-    SELECT t.table_number, t.qr_token, t.max_photos, g.name AS guest_name
+    SELECT t.table_number, t.qr_token, t.max_photos, t.upload_paused, g.name AS guest_name
     FROM table_qrs t
     LEFT JOIN guests g ON g.table_qr_id = t.id
     WHERE t.event_id = ${event.id}
     ORDER BY t.table_number ASC
-  `) as { table_number: number; qr_token: string; max_photos: number; guest_name: string | null }[];
+  `) as { table_number: number; qr_token: string; max_photos: number; upload_paused: boolean; guest_name: string | null }[];
 
   return NextResponse.json({ tables: rows });
 }
@@ -36,6 +37,7 @@ export async function POST() {
 
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
 
   const maxRows = (await sql`
     SELECT COALESCE(MAX(table_number), 0) AS max FROM table_qrs WHERE event_id = ${event.id}
@@ -59,8 +61,9 @@ export async function POST() {
 
 const patchSchema = z.object({
   table_number: z.number().int().positive(),
-  max_photos: z.number().int().min(1).max(100),
-});
+  max_photos: z.number().int().min(1).max(100).optional(),
+  upload_paused: z.boolean().optional(),
+}).refine((value) => value.max_photos !== undefined || value.upload_paused !== undefined, { message: "Nada para actualizar" });
 
 const deleteSchema = z.object({ table_number: z.number().int().positive() });
 
@@ -84,8 +87,15 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
   }
 
+  const uploadWindow = getUploadWindowState(event);
+  if (parsed.data.max_photos !== undefined && !uploadWindow.canEditSetup) {
+    return NextResponse.json({ error: "Los cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
+  }
+
   const updated = (await sql`
-    UPDATE table_qrs SET max_photos = ${parsed.data.max_photos}
+    UPDATE table_qrs SET
+      max_photos = COALESCE(${parsed.data.max_photos ?? null}, max_photos),
+      upload_paused = COALESCE(${parsed.data.upload_paused ?? null}, upload_paused)
     WHERE table_number = ${parsed.data.table_number} AND event_id = ${event.id}
     RETURNING table_number, max_photos
   `) as { table_number: number; max_photos: number }[];
@@ -105,6 +115,7 @@ export async function DELETE(request: Request) {
 
   const event = await getAdminEvent();
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
 
   let body: unknown;
   try {
@@ -126,12 +137,16 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
   }
 
-  const photos = (await sql`
-    SELECT count(*) AS n FROM photos WHERE table_qr_id = ${table.id}
-  `) as { n: string }[];
-  if (Number(photos[0]?.n ?? 0) > 0) {
+  const activity = (await sql`
+    SELECT
+      (SELECT count(*) FROM photos WHERE table_qr_id = ${table.id}) AS photos,
+      (SELECT count(*) FROM upload_sessions WHERE table_qr_id = ${table.id}) AS sessions,
+      (SELECT count(*) FROM guests WHERE table_qr_id = ${table.id} AND rsvp_responded_at IS NOT NULL) AS responded
+  `) as { photos: string; sessions: string; responded: string }[];
+  const counts = activity[0];
+  if (Number(counts?.photos ?? 0) > 0 || Number(counts?.sessions ?? 0) > 0 || Number(counts?.responded ?? 0) > 0) {
     return NextResponse.json(
-      { error: "La mesa tiene fotos y no se puede eliminar" },
+      { error: "La familia tiene actividad y no se puede eliminar; pausala para conservar sus datos" },
       { status: 409 },
     );
   }

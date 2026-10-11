@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/admin-auth";
 import { broadcastSlideshow } from "@/lib/sse";
 
 import { getAdminEvent } from "@/lib/event-context";
+import { getUploadWindowState } from "@/lib/upload-window";
+import { eventSchedule } from "@/lib/setup-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +19,8 @@ type EventSettings = Pick<
   | "projection_enabled"
   | "slideshow_interval"
   | "max_photos_per_session"
+  | "upload_starts_at"
+  | "upload_ends_at"
 >;
 
 const eventSchema = z.object({
@@ -43,7 +47,7 @@ export async function GET(request: Request) {
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   const rows = (await sql`
     SELECT name, slug, reveal_at, upload_open, projection_enabled,
-           slideshow_interval, max_photos_per_session
+           slideshow_interval, max_photos_per_session, upload_starts_at, upload_ends_at
     FROM events
     WHERE id = ${event.id}
     LIMIT 1
@@ -53,7 +57,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   }
 
-  return NextResponse.json({ event: rows[0] });
+  return NextResponse.json({ event: { ...rows[0], upload_window: getUploadWindowState(rows[0]) } });
 }
 
 export async function POST(request: Request) {
@@ -77,11 +81,18 @@ export async function POST(request: Request) {
   let revealAt: string | null | undefined;
   if (parsed.data.reveal_at !== undefined) {
     if (parsed.data.reveal_at === null) {
-      revealAt = null;
+      return badRequest("La fecha de reveal es obligatoria");
     } else {
       const revealDate = new Date(parsed.data.reveal_at);
       if (Number.isNaN(revealDate.getTime())) {
         return badRequest("Fecha de reveal inválida");
+      }
+      if (!event.starts_at) {
+        return badRequest("El evento no tiene fecha de inicio configurada");
+      }
+      const minimumReveal = new Date(eventSchedule(event.starts_at).min_reveal_at);
+      if (revealDate < minimumReveal) {
+        return badRequest("El reveal debe respetar el mÃ­nimo de 48 horas desde la apertura de carga");
       }
       revealAt = revealDate.toISOString();
     }
@@ -94,6 +105,15 @@ export async function POST(request: Request) {
     parsed.data.max_photos_per_session === undefined
   ) {
     return badRequest("No hay cambios para guardar");
+  }
+
+  const uploadWindow = getUploadWindowState(event);
+  const changingPause = parsed.data.upload_open !== undefined && parsed.data.upload_open !== event.upload_open;
+  if (changingPause && !uploadWindow.canTogglePause) {
+    return NextResponse.json({ error: `No se puede pausar o reanudar: ${uploadWindow.message}` }, { status: 409 });
+  }
+  if ((revealAt !== undefined || parsed.data.max_photos_per_session !== undefined) && !uploadWindow.canEditSetup) {
+    return NextResponse.json({ error: "La configuración queda bloqueada desde la apertura de la carga" }, { status: 409 });
   }
 
   if (revealAt !== undefined) {
@@ -118,11 +138,11 @@ export async function POST(request: Request) {
 
   const updated = (await sql`
     SELECT name, slug, reveal_at, upload_open, projection_enabled,
-           slideshow_interval, max_photos_per_session
+           slideshow_interval, max_photos_per_session, upload_starts_at, upload_ends_at
     FROM events
     WHERE id = ${event.id}
     LIMIT 1
   `) as EventSettings[];
 
-  return NextResponse.json({ ok: true, event: updated[0] });
+  return NextResponse.json({ ok: true, event: { ...updated[0], upload_window: getUploadWindowState(updated[0]) } });
 }

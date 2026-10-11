@@ -61,7 +61,7 @@ export function AdminInitialSetup({ suggestedStart, slug }: { suggestedStart: st
     finally { setBusy(false); }
   }
 
-  return <main className="admin-scroll min-h-dvh bg-cream px-6 py-10 sm:py-16">
+  return <main className="codex-shell admin-scroll min-h-dvh bg-cream px-6 py-10 sm:py-16">
     <div className="mx-auto max-w-3xl">
       <h1 className="font-serif text-4xl text-ink">Configurar el evento</h1>
       <p className="mt-2 text-ink/70">Paso {mode === "public_qr" && step === 3 ? 2 : step} de {mode === "public_qr" ? 2 : 3} · {step === 1 ? "Datos del evento" : step === 2 ? "Familias y QR" : "Revisar y crear"}</p>

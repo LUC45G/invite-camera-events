@@ -138,3 +138,77 @@ button:not(:disabled) {
   overflow: hidden;
   min-height: 0;
 }
+
+/* Operator surfaces: a compact Codex 1337-inspired layer. The invitation
+   keeps its original wedding palette; only admin and camera opt in. */
+.codex-shell {
+  --codex-bg: #0d1117;
+  --codex-panel: #161b22;
+  --codex-panel-raised: #1f2630;
+  --codex-border: #30363d;
+  --codex-text: #e6edf3;
+  --codex-muted: #8b949e;
+  --codex-green: #7ee787;
+  --codex-purple: #d2a8ff;
+  --codex-red: #ff7b72;
+  min-height: 100dvh;
+  background: var(--codex-bg) !important;
+  color: var(--codex-text) !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.codex-shell .bg-cream { background: var(--codex-bg) !important; }
+.codex-shell .bg-ivory { background: var(--codex-panel) !important; }
+.codex-shell .text-ink { color: var(--codex-text) !important; }
+.codex-shell .text-bronze { color: var(--codex-green) !important; }
+.codex-shell .text-ink\/55,
+.codex-shell .text-ink\/60,
+.codex-shell .text-ink\/65,
+.codex-shell .text-ink\/70 { color: var(--codex-muted) !important; }
+.codex-shell [class*="border-ink"] { border-color: var(--codex-border) !important; }
+.codex-shell [class*="border-bronze"] { border-color: var(--codex-green) !important; }
+.codex-shell .bg-bronze { background: var(--codex-green) !important; color: var(--codex-bg) !important; }
+.codex-shell .bg-bronze\/10 { background: color-mix(in srgb, var(--codex-green) 10%, transparent) !important; }
+.codex-shell .bg-ink\/80 { background: #30363d !important; }
+.codex-shell input,
+.codex-shell textarea,
+.codex-shell select {
+  border-color: var(--codex-border) !important;
+  background: var(--codex-panel-raised) !important;
+  color: var(--codex-text) !important;
+}
+.codex-shell input:focus,
+.codex-shell textarea:focus,
+.codex-shell select:focus { border-color: var(--codex-green) !important; outline: none; }
+.codex-shell section { border-color: var(--codex-border) !important; }
+.codex-shell button { font-family: inherit; }
+.codex-shell button:hover:not(:disabled) { filter: brightness(1.12); }
+.codex-shell .font-serif { font-family: inherit; font-weight: 700; letter-spacing: -0.04em; }
+.codex-shell .font-mono { color: var(--codex-muted); }
+.codex-shell .text-red-900 { color: var(--codex-red) !important; }
+
+.codex-toggle {
+  position: relative;
+  display: inline-flex;
+  height: 1.35rem;
+  width: 2.5rem;
+  flex: 0 0 auto;
+  align-items: center;
+  border: 1px solid var(--codex-border);
+  border-radius: 999px;
+  background: var(--codex-panel-raised);
+  padding: 2px;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.codex-toggle::after {
+  content: "";
+  display: block;
+  height: 0.95rem;
+  width: 0.95rem;
+  border-radius: 999px;
+  background: var(--codex-muted);
+  transition: transform 150ms ease, background 150ms ease;
+}
+.codex-toggle[aria-checked="true"] { border-color: var(--codex-green); background: color-mix(in srgb, var(--codex-green) 22%, transparent); }
+.codex-toggle[aria-checked="true"]::after { transform: translateX(1.1rem); background: var(--codex-green); }
+.codex-toggle:disabled { opacity: 0.5; cursor: not-allowed; }

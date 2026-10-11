@@ -146,7 +146,7 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
   const rejected = photos.filter((p) => p.status === "rejected");
 
   return (
-    <div className="min-h-dvh bg-cream px-4 py-6 sm:px-6">
+    <div className="codex-shell min-h-dvh bg-cream px-4 py-6 sm:px-6">
       <header className="mx-auto mb-6 flex max-w-5xl flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-serif text-3xl text-ink">Admin</h1>

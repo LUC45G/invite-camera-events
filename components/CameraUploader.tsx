@@ -304,7 +304,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-cream">
+    <div className="codex-shell flex min-h-dvh flex-col bg-cream">
       <header className="flex items-center justify-between px-6 py-4">
         {accessMode === "invitations" ? <Link
           href={`/${slug}`}
@@ -406,7 +406,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
           autoPlay
           playsInline
           muted
-          className={`w-full max-w-[400px] rounded-sm border border-ink/10 object-cover ${phase === "camera" || phase === "starting" ? "block" : "hidden"}`}
+          className={`aspect-[4/3] w-full max-w-[400px] rounded-sm border border-ink/10 object-cover ${phase === "camera" || phase === "starting" ? "block" : "hidden"}`}
         />
 
         {/* Preview 4:3 */}
@@ -414,7 +414,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
           <img
             src={URL.createObjectURL(previewBlob)}
             alt="Preview de la foto"
-            className="w-full max-w-[400px] rounded-sm border border-ink/10"
+            className="aspect-[4/3] w-full max-w-[400px] rounded-sm border border-ink/10 object-cover"
           />
         )}
 

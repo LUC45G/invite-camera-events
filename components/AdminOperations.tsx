@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
+import { Toggle } from "@/components/Toggle";
 
 type AdminRsvpRow = {
   table_number: number | null;
@@ -168,9 +169,8 @@ export function AdminRsvpPanel({ slug, locked = false }: { slug: string; locked?
   const [editingTable, setEditingTable] = useState<number | null>(null);
   const [draftName, setDraftName] = useState("");
   const [savingName, setSavingName] = useState(false);
-  const [savingStatus, setSavingStatus] = useState<number | null>(null);
 
-  async function saveGuest(table_number: number, patch: { name?: string; status?: string }) {
+  async function saveGuest(table_number: number, patch: { name: string }) {
     const res = await fetch("/api/admin/guests", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -194,17 +194,6 @@ export function AdminRsvpPanel({ slug, locked = false }: { slug: string; locked?
       // el error queda visible vía el banner de la lista al refrescar
     } finally {
       setSavingName(false);
-    }
-  }
-
-  async function saveStatus(table_number: number, status: string) {
-    setSavingStatus(table_number);
-    try {
-      await saveGuest(table_number, { status });
-    } catch {
-      // el error queda visible vía el banner de la lista al refrescar
-    } finally {
-      setSavingStatus((current) => (current === table_number ? null : current));
     }
   }
 
@@ -314,19 +303,7 @@ export function AdminRsvpPanel({ slug, locked = false }: { slug: string; locked?
                   )}
                 </td>
                 <td className="px-3 py-2">
-                  <select
-                    value={row.rsvp_status}
-                    disabled={savingStatus === row.table_number || locked}
-                    onChange={(e) =>
-                      row.table_number !== null && void saveStatus(row.table_number, e.target.value)
-                    }
-                    aria-label={`Estado de familia ${row.table_number ?? ""}`}
-                    className="rounded-sm border border-ink/20 bg-ivory px-1.5 py-0.5 text-sm text-ink disabled:opacity-60"
-                  >
-                    <option value="pending">Pendiente</option>
-                    <option value="accepted">Confirmada</option>
-                    <option value="declined">Rechazada</option>
-                  </select>
+                  <span className="text-ink/70">{rsvpStatusLabel(row.rsvp_status)}</span>
                 </td>
                 <td className="px-3 py-2">{row.rsvp_guests}</td>
                 <td className="px-3 py-2">{row.rsvp_dietary?.trim() || "—"}</td>
@@ -432,21 +409,19 @@ export function AdminEventSettings({ slug }: { slug: string }) {
           />
         </label>
         <label className="flex items-center gap-2 font-sans text-sm text-ink/70">
-          <input
-            type="checkbox"
+          <Toggle
             checked={form.uploadOpen}
-            onChange={(e) => updateForm({ uploadOpen: e.target.checked })}
+            onChange={(checked) => updateForm({ uploadOpen: checked })}
             disabled={Boolean(data?.event && !data.event.upload_window.canTogglePause)}
-            className="h-4 w-4 accent-[#B57E7F]"
+            label="Subida abierta"
           />
           Subida abierta
         </label>
         <label className="flex items-center gap-2 font-sans text-sm text-ink/70">
-          <input
-            type="checkbox"
+          <Toggle
             checked={form.projectionEnabled}
-            onChange={(e) => updateForm({ projectionEnabled: e.target.checked })}
-            className="h-4 w-4 accent-[#B57E7F]"
+            onChange={(checked) => updateForm({ projectionEnabled: checked })}
+            label="Proyección habilitada"
           />
           Proyección habilitada
         </label>

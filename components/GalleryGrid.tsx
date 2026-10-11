@@ -53,8 +53,8 @@ export function GalleryGrid({ photos }: { photos: GalleryPhoto[] }) {
               src={p.thumbnail_url}
               alt="Foto de la boda"
               width={480}
-              height={480}
-              className="aspect-square w-full object-cover"
+              height={360}
+              className="aspect-[4/3] w-full object-cover"
               loading="lazy"
             />
           </button>

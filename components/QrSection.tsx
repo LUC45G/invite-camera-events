@@ -304,10 +304,8 @@ p { font-size: 14px; word-break: break-all; }
                   </button>
                 </p>
                 {t.upload_paused && <p className="text-xs tracking-[0.12em] text-bronze uppercase">Carga pausada</p>}
-                <p className="truncate font-mono text-xs text-ink/55">
-                  {inviteUrl(t.qr_token)}
-                </p>
-                <label className="mt-2 flex items-center gap-2 font-sans text-xs text-ink/60">
+                <div className="mt-2 flex items-center justify-between gap-3 font-sans text-xs text-ink/60">
+                <label className="flex items-center gap-2">
                   Límite
                   <input
                     type="number"
@@ -320,32 +318,35 @@ p { font-size: 14px; word-break: break-all; }
                   />
                   <span>fotos</span>
                 </label>
-                <button type="button" onClick={() => void togglePause(t.table_number, !t.upload_paused)} disabled={mutating} className="mt-2 rounded-sm border border-bronze px-3 py-1 text-xs text-bronze disabled:opacity-60">
-                  {t.upload_paused ? "Reactivar carga" : "Pausar carga"}
-                </button>
+                <div className="flex items-center gap-2">
+                  <span>{t.upload_paused ? "Carga pausada" : "Carga activa"}</span>
+                  <button type="button" onClick={() => void togglePause(t.table_number, !t.upload_paused)} disabled={mutating || locked} role="switch" aria-checked={t.upload_paused} aria-label={`${t.upload_paused ? "Reactivar" : "Pausar"} carga`} title={`${t.upload_paused ? "Reactivar" : "Pausar"} carga`} className="codex-toggle">
+                    <span className="sr-only">{t.upload_paused ? "Reactivar carga" : "Pausar carga"}</span>
+                  </button>
+                </div>
+                </div>
               </div>
               <div className="flex gap-2">
                 <CopyButton
                   text={inviteUrl(t.qr_token)}
                   className="flex-1 rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
                 >
-                  Copiar link
+                  <span aria-hidden="true">⧉</span><span className="sr-only">Copiar link</span>
                 </CopyButton>
                 <CopyButton
                   text={buildMessage(t)}
                   className="flex-1 rounded-sm border border-bronze px-3 py-1.5 text-sm text-bronze"
                 >
-                  Copiar mensaje
+                  <span aria-hidden="true">✉</span><span className="sr-only">Copiar mensaje</span>
                 </CopyButton>
                 <button
                   type="button"
                   onClick={() => openQr(t)}
                   className="flex-1 rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory"
                 >
-                  QR familia
+                  <span aria-hidden="true">▦</span><span className="sr-only">Mostrar QR de familia</span>
                 </button>
               </div>
-              <details className="text-sm text-ink/70"><summary className="cursor-pointer">Ver mensaje para copiar</summary><p className="mt-2 whitespace-pre-wrap break-words">{buildMessage(t)}</p></details>
             </div>
           ))}
         </div>
@@ -368,9 +369,6 @@ p { font-size: 14px; word-break: break-all; }
             >
               QR Familia {selected.table_number}
             </h3>
-            <p className="mt-1 break-all font-mono text-xs text-ink/55">
-              {qrUrl(selected.qr_token)}
-            </p>
             <div className="mt-4 flex min-h-64 items-center justify-center">
               {qrBusy && (
                 <p className="font-sans text-sm text-ink/55">Generando QR…</p>

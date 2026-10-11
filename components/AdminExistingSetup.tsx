@@ -45,7 +45,7 @@ export function AdminExistingSetup({ event, suggestedStart, counts }: Props) {
     finally { setBusy(false); }
   }
 
-  return <main className="admin-scroll min-h-dvh bg-cream px-6 py-12">
+  return <main className="codex-shell admin-scroll min-h-dvh bg-cream px-6 py-12">
     <div className="mx-auto max-w-xl">
       <h1 className="font-serif text-4xl text-ink">Configurar el evento existente</h1>
       <p className="mt-4">{event.name} · /{event.slug}</p>

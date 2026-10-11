@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const admin = await isAdmin();
 
-  if (!admin) return <AdminLogin />;
+  if (!admin) return <div className="codex-shell"><AdminLogin /></div>;
 
   const event = await getInstallationEvent();
   if (!event) {

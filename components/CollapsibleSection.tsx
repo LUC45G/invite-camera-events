@@ -37,7 +37,8 @@ export function CollapsibleSection({
             onClick={() => setOpen((v) => !v)}
             className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
           >
-            {open ? "Ocultar" : "Mostrar"}
+            <span aria-hidden="true">{open ? "⌃" : "⌄"}</span>
+            <span className="sr-only">{open ? "Ocultar" : "Mostrar"}</span>
           </button>
         </div>
       </div>

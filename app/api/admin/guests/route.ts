@@ -11,8 +11,7 @@ export const dynamic = "force-dynamic";
 const renameSchema = z.object({
   table_number: z.number().int().positive(),
   name: z.string().trim().min(1).max(100).optional(),
-  status: z.enum(["pending", "accepted", "declined"]).optional(),
-}).refine((d) => d.name !== undefined || d.status !== undefined, {
+}).refine((d) => d.name !== undefined, {
   message: "Nada para actualizar",
 });
 
@@ -47,19 +46,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Mesa no encontrada" }, { status: 404 });
   }
 
-  const { name, status } = parsed.data;
+  const { name } = parsed.data;
 
   if (name !== undefined) {
     await sql`
       UPDATE guests SET name = ${name} WHERE table_qr_id = ${table.id} AND event_id = ${event.id}
-    `;
-  }
-  if (status !== undefined) {
-    await sql`
-      UPDATE guests
-      SET rsvp_status = ${status},
-          rsvp_responded_at = ${status === "pending" ? null : new Date().toISOString()}
-      WHERE table_qr_id = ${table.id} AND event_id = ${event.id}
     `;
   }
   return NextResponse.json({ ok: true });

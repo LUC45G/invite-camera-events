@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 type Props = {
   title: string;
@@ -37,7 +38,7 @@ export function CollapsibleSection({
             onClick={() => setOpen((v) => !v)}
             className="rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
           >
-            <span aria-hidden="true">{open ? "⌃" : "⌄"}</span>
+            {open ? <ChevronUp aria-hidden="true" className="mx-auto h-4 w-4" /> : <ChevronDown aria-hidden="true" className="mx-auto h-4 w-4" />}
             <span className="sr-only">{open ? "Ocultar" : "Mostrar"}</span>
           </button>
         </div>

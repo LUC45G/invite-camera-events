@@ -27,7 +27,12 @@ export function AdminTestUploadPanel({ slug }: { slug: string }) {
     } else setQr(null);
   }, [slug]);
 
-  useEffect(() => { void refresh().catch((e) => setError(e instanceof Error ? e.message : "Error")); }, [refresh]);
+  useEffect(() => {
+    const onRefresh = () => void refresh().catch((e) => setError(e instanceof Error ? e.message : "Error"));
+    void refresh().catch((e) => setError(e instanceof Error ? e.message : "Error"));
+    window.addEventListener("admin:refresh", onRefresh);
+    return () => window.removeEventListener("admin:refresh", onRefresh);
+  }, [refresh]);
 
   async function action(actionName: "create" | "cancel" | "cleanup") {
     setBusy(true); setError(null);

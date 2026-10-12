@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { Pencil } from "lucide-react";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { Toggle } from "@/components/Toggle";
 
@@ -298,7 +299,7 @@ export function AdminRsvpPanel({ slug, locked = false }: { slug: string; locked?
                       className="group text-left disabled:opacity-60"
                     >
                       {row.name ?? "—"}{" "}
-                      <span className="text-ink/30 group-hover:text-bronze">✏️</span>
+                      <Pencil aria-hidden="true" className="inline-block h-3.5 w-3.5 text-ink/30 group-hover:text-bronze" />
                     </button>
                   )}
                 </td>

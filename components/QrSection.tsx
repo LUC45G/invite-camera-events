@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ChevronDown, Copy, Mail, QrCode } from "lucide-react";
 import { CopyButton } from "@/components/CopyButton";
 import { CollapsibleSection } from "@/components/CollapsibleSection";
 import { DEFAULT_INVITATION_MESSAGE, DEFAULT_INVITATION_CONTACT, invitationSettingsSchema, familyInvitationLink, renderInvitationMessage } from "@/lib/invitation-message";
@@ -76,9 +77,11 @@ export function QrSection({ slug, invitationMessage, invitationContact, locked =
     // recarga cuando otro panel cambia familias/nombres
     const onChange = () => void loadTables();
     window.addEventListener("qr:tables-changed", onChange);
+    window.addEventListener("admin:refresh", onChange);
     return () => {
       cancelled = true;
       window.removeEventListener("qr:tables-changed", onChange);
+      window.removeEventListener("admin:refresh", onChange);
     };
   }, [loadTables]);
 
@@ -269,7 +272,7 @@ p { font-size: 14px; word-break: break-all; }
         <details className="group">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
             <span>Mensaje para copiar</span>
-            <span aria-hidden="true" className="text-ink/60 transition-transform group-open:rotate-180">⌄</span>
+            <ChevronDown aria-hidden="true" className="h-4 w-4 text-ink/60 transition-transform group-open:rotate-180" />
           </summary>
           <div className="mt-3 flex flex-col gap-3">
             {tables.length > 0 && <label className="flex flex-col gap-2 text-sm">Familia para la vista previa
@@ -337,25 +340,20 @@ p { font-size: 14px; word-break: break-all; }
                   text={inviteUrl(t.qr_token)}
                   className="flex-1 rounded-sm border border-ink/20 px-3 py-1.5 text-sm text-ink"
                 >
-                  <span aria-hidden="true">⧉</span><span className="sr-only">Copiar link</span>
+                  <Copy aria-hidden="true" className="mx-auto h-4 w-4" /><span className="sr-only">Copiar link</span>
                 </CopyButton>
                 <CopyButton
                   text={buildMessage(t)}
                   className="flex-1 rounded-sm border border-bronze px-3 py-1.5 text-sm text-bronze"
                 >
-                  <span aria-hidden="true">✉</span><span className="sr-only">Copiar mensaje</span>
+                  <Mail aria-hidden="true" className="mx-auto h-4 w-4" /><span className="sr-only">Copiar mensaje</span>
                 </CopyButton>
                 <button
                   type="button"
                   onClick={() => openQr(t)}
                   className="flex-1 rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory"
                 >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
-                    <rect x="3" y="3" width="6" height="6" rx="1" />
-                    <rect x="15" y="3" width="6" height="6" rx="1" />
-                    <rect x="3" y="15" width="6" height="6" rx="1" />
-                    <path d="M15 15h3v3h3v3h-6v-6Zm3 0v3" />
-                  </svg><span className="sr-only">Mostrar QR de familia</span>
+                  <QrCode aria-hidden="true" className="mx-auto h-5 w-5" /><span className="sr-only">Mostrar QR de familia</span>
                 </button>
               </div>
             </div>

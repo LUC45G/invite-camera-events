@@ -99,7 +99,7 @@ export default async function Page({ params, searchParams }: Props) {
 
       {/* 3. Cronograma — línea de tiempo vertical */}
       <section className="relative flex min-h-dvh snap-start flex-col items-center justify-center overflow-hidden px-6">
-        <SectionDecor items={event.decor.schedule} />
+        <SectionDecor items={event.decor.schedule} className="md:translate-x-[50px]" />
         <div className="relative z-20 w-full">
           <Reveal>
             <Stagger delay={0}>
@@ -107,7 +107,7 @@ export default async function Page({ params, searchParams }: Props) {
                 Cronograma
               </h2>
             </Stagger>
-            <div className="mt-8 w-full">
+            <div className="mt-2 w-full">
               <Timeline items={event.schedule} />
             </div>
           </Reveal>

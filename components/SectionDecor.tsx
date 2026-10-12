@@ -31,7 +31,7 @@ const DESKTOP_SIDE_RESPONSIVE_CLASS: Record<Decoration["corner"], string> = {
 
 // Decoración floral anclada al ancestro posicionado más cercano.
 // No intercepta clicks ni se puede seleccionar.
-export function SectionDecor({ items }: { items: Decoration[] }) {
+export function SectionDecor({ items, className = "" }: { items: Decoration[]; className?: string }) {
   const visibleItems = items?.filter((item) => !item.hidden) ?? [];
   if (!visibleItems.length) return null;
 
@@ -56,10 +56,10 @@ export function SectionDecor({ items }: { items: Decoration[] }) {
               aria-hidden="true"
               className={
                 mobileHidden
-                  ? `pointer-events-none absolute inset-y-0 hidden select-none md:block ${SIDE_CLASS[item.corner]}`
+                ? `pointer-events-none absolute inset-y-0 hidden select-none md:block ${SIDE_CLASS[item.corner]} ${className}`
                   : mobileCorner
-                    ? `pointer-events-none absolute aspect-[16/9] select-none ${MOBILE_SIDE_CLASS[mobileCorner]} ${mobileWidth} md:inset-y-0 md:w-auto md:aspect-[16/9] ${DESKTOP_SIDE_RESPONSIVE_CLASS[item.corner]}`
-                    : `pointer-events-none absolute inset-y-0 aspect-[16/9] select-none ${SIDE_CLASS[item.corner]}`
+                    ? `pointer-events-none absolute aspect-[16/9] select-none ${MOBILE_SIDE_CLASS[mobileCorner]} ${mobileWidth} md:inset-y-0 md:w-auto md:aspect-[16/9] ${DESKTOP_SIDE_RESPONSIVE_CLASS[item.corner]} ${className}`
+                    : `pointer-events-none absolute inset-y-0 aspect-[16/9] select-none ${SIDE_CLASS[item.corner]} ${className}`
               }
             >
               <Image
@@ -87,7 +87,7 @@ export function SectionDecor({ items }: { items: Decoration[] }) {
           <span
             key={key}
             aria-hidden="true"
-            className={`${item.mobile === "hidden" ? "hidden md:block" : ""} pointer-events-none absolute select-none ${CORNER_CLASS[item.corner]} ${size}`}
+            className={`${item.mobile === "hidden" ? "hidden md:block" : ""} pointer-events-none absolute select-none ${CORNER_CLASS[item.corner]} ${size} ${className}`}
           >
             <Image
               src={item.src}

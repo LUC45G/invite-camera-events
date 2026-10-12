@@ -1,22 +1,56 @@
 "use client";
 
 import Image from "next/image";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Stagger } from "@/components/Stagger";
 import type { ScheduleItem } from "@/lib/event-data";
 
 export function Timeline({ items }: { items: ScheduleItem[] }) {
+  const timelineRef = useRef<HTMLDivElement>(null);
+  const [rail, setRail] = useState<{ top: number; bottom: number } | null>(null);
+
+  useLayoutEffect(() => {
+    const container = timelineRef.current;
+    if (!container) return;
+
+    const updateRail = () => {
+      const dots = container.querySelectorAll<HTMLElement>("[data-timeline-dot]");
+      const first = dots[0];
+      const last = dots[dots.length - 1];
+      if (!first || !last) return;
+
+      const bounds = container.getBoundingClientRect();
+      const firstBounds = first.getBoundingClientRect();
+      const lastBounds = last.getBoundingClientRect();
+      setRail({
+        top: firstBounds.top + firstBounds.height / 2 - bounds.top,
+        bottom: bounds.bottom - (lastBounds.top + lastBounds.height / 2),
+      });
+    };
+
+    updateRail();
+    const observer = new ResizeObserver(updateRail);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [items.length]);
+
   return (
-    <div className="relative mx-auto w-full max-w-5xl py-2">
+    <div ref={timelineRef} className="relative mx-auto w-full max-w-5xl py-2">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute bottom-4 left-3 top-4 z-20 w-[2px] md:bottom-6 md:left-1/2 md:top-6 md:-translate-x-1/2"
-        style={{ backgroundColor: "rgb(172, 133, 136)" }}
+        className="pointer-events-none absolute left-3 z-0 w-[2px] md:left-1/2 md:-translate-x-1/2"
+        style={{
+          top: rail?.top ?? 0,
+          bottom: rail?.bottom ?? 0,
+          visibility: rail ? "visible" : "hidden",
+          backgroundColor: "rgb(172, 133, 136)",
+        }}
       />
-      <div className="flex flex-col gap-9 md:gap-7">
+      <div className="flex flex-col gap-9 md:gap-2">
         {items.map((item, i) => (
           <Stagger key={`${item.time}-${i}`} delay={120 + i * 120}>
             <article className="relative grid grid-cols-[1.5rem_3rem_minmax(0,1fr)] items-center gap-x-3 md:grid-cols-[minmax(0,1fr)_10rem_minmax(0,1fr)] md:gap-x-0">
-              <span className="absolute left-2 top-1/2 z-30 h-2 w-2 -translate-y-1/2 rounded-full border border-[#AC8588] bg-cream md:left-1/2 md:-translate-x-1/2" />
+              <span data-timeline-dot className="absolute left-2 top-1/2 z-30 h-2 w-2 -translate-y-1/2 rounded-full border border-[#AC8588] bg-cream md:left-1/2 md:-translate-x-1/2" />
 
               <div
                 className={`relative z-10 col-start-2 row-start-1 flex ${

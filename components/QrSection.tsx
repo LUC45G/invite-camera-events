@@ -265,18 +265,25 @@ p { font-size: 14px; word-break: break-all; }
         </button>
       }
     >
-      <form onSubmit={saveSettings} className="mb-6 flex flex-col gap-4 border-b border-ink/15 pb-6">
-        <h3 className="font-serif text-2xl">Mensaje y contacto de invitaciones</h3>
-        {tables.length > 0 && <label className="flex flex-col gap-2 text-sm">Familia para la vista previa
-          <select value={previewTable.table_number} onChange={(e) => setPreviewNumber(Number(e.target.value))} className="rounded-sm border border-ink/20 bg-ivory p-3">
-            {tables.map((table) => <option key={table.table_number} value={table.table_number}>{table.guest_name ?? `Familia ${table.table_number}`}</option>)}
-          </select>
-        </label>}
-        <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={savingSettings || locked}
-          previewName={previewTable?.guest_name ?? `Familia ${previewTable?.table_number ?? 1}`}
-          previewLink={inviteUrl(previewTable?.qr_token ?? "token-de-ejemplo")} />
-        {settingsNotice && <p role="status" className="text-sm">{settingsNotice}</p>}
-        <button disabled={savingSettings || locked} className="self-start rounded-sm bg-bronze px-4 py-2 text-ivory disabled:opacity-50">{savingSettings ? "Guardando…" : "Guardar mensaje y contacto"}</button>
+      <form onSubmit={saveSettings} className="mb-4 border-b border-ink/15 pb-3">
+        <details className="group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-ink [&::-webkit-details-marker]:hidden">
+            <span>Mensaje para copiar</span>
+            <span aria-hidden="true" className="text-ink/60 transition-transform group-open:rotate-180">⌄</span>
+          </summary>
+          <div className="mt-3 flex flex-col gap-3">
+            {tables.length > 0 && <label className="flex flex-col gap-2 text-sm">Familia para la vista previa
+              <select value={previewTable.table_number} onChange={(e) => setPreviewNumber(Number(e.target.value))} className="rounded-sm border border-ink/20 bg-ivory p-3">
+                {tables.map((table) => <option key={table.table_number} value={table.table_number}>{table.guest_name ?? `Familia ${table.table_number}`}</option>)}
+              </select>
+            </label>}
+            <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={savingSettings || locked}
+              previewName={previewTable?.guest_name ?? `Familia ${previewTable?.table_number ?? 1}`}
+              previewLink={inviteUrl(previewTable?.qr_token ?? "token-de-ejemplo")} />
+            {settingsNotice && <p role="status" className="text-sm">{settingsNotice}</p>}
+            <button disabled={savingSettings || locked} className="self-start rounded-sm bg-bronze px-3 py-1.5 text-xs text-ivory disabled:opacity-50">{savingSettings ? "Guardando…" : "Guardar mensaje y contacto"}</button>
+          </div>
+        </details>
       </form>
       {listError && (
         <p role="alert" className="mb-2 font-sans text-sm text-ink/80">
@@ -343,7 +350,12 @@ p { font-size: 14px; word-break: break-all; }
                   onClick={() => openQr(t)}
                   className="flex-1 rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory"
                 >
-                  <span aria-hidden="true">▦</span><span className="sr-only">Mostrar QR de familia</span>
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="mx-auto h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8">
+                    <rect x="3" y="3" width="6" height="6" rx="1" />
+                    <rect x="15" y="3" width="6" height="6" rx="1" />
+                    <rect x="3" y="15" width="6" height="6" rx="1" />
+                    <path d="M15 15h3v3h3v3h-6v-6Zm3 0v3" />
+                  </svg><span className="sr-only">Mostrar QR de familia</span>
                 </button>
               </div>
             </div>

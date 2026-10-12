@@ -391,12 +391,6 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
               Este dispositivo está ligado a la {tableName ?? `familia ${tableNumber ?? ""}`}.
               Pedí el QR de tu familia para subir fotos.
             </p>
-            <Link
-              href={`/${slug}`}
-              className="mt-2 rounded-sm bg-bronze px-8 py-3 text-lg text-ivory transition-colors hover:bg-bronze/90"
-            >
-              Volver a la invitación
-            </Link>
           </div>
         )}
 

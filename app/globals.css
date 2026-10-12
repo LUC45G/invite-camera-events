@@ -186,6 +186,13 @@ button:not(:disabled) {
 .codex-shell .font-serif { font-family: inherit; font-weight: 700; letter-spacing: -0.04em; }
 .codex-shell .font-mono { color: var(--codex-muted); }
 .codex-shell .text-red-900 { color: var(--codex-red) !important; }
+.codex-shell [role="alert"] { color: var(--codex-red) !important; }
+.codex-shell .codex-field {
+  border: 1px solid var(--codex-border);
+  border-radius: 0.125rem;
+  background: var(--codex-panel);
+  padding: 0.75rem;
+}
 
 .codex-toggle {
   position: relative;

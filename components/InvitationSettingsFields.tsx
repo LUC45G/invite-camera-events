@@ -13,7 +13,7 @@ export function InvitationSettingsFields({ message, contact, onMessage, onContac
 }) {
   return (
     <div className="grid gap-3 lg:grid-cols-2">
-      <div>
+      <div className="codex-field">
         <label className="flex flex-col gap-2 text-sm">
           Mensaje para copiar
           <textarea
@@ -30,7 +30,7 @@ export function InvitationSettingsFields({ message, contact, onMessage, onContac
           Usá {"{nombre}"} para la familia y {"{link}"} para su invitación. El enlace es obligatorio.
         </p>
       </div>
-      <div className="rounded-sm border border-ink/15 bg-ivory p-3">
+      <div className="codex-field">
         <p className="mb-2 text-sm text-ink/60">Vista previa · {previewName}</p>
         <p className="whitespace-pre-wrap break-words text-sm">
           {renderInvitationMessage(message, previewName, previewLink)}

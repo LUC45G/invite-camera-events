@@ -275,7 +275,6 @@ p { font-size: 14px; word-break: break-all; }
         <InvitationSettingsFields message={message} contact={contact} onMessage={setMessage} onContact={setContact} disabled={savingSettings || locked}
           previewName={previewTable?.guest_name ?? `Familia ${previewTable?.table_number ?? 1}`}
           previewLink={inviteUrl(previewTable?.qr_token ?? "token-de-ejemplo")} />
-        <p className="text-sm text-ink/60">Guardá los cambios para usarlos en los botones Copiar mensaje de cada familia. No se envían mensajes automáticamente.</p>
         {settingsNotice && <p role="status" className="text-sm">{settingsNotice}</p>}
         <button disabled={savingSettings || locked} className="self-start rounded-sm bg-bronze px-4 py-2 text-ivory disabled:opacity-50">{savingSettings ? "Guardando…" : "Guardar mensaje y contacto"}</button>
       </form>

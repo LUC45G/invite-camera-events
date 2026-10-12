@@ -261,7 +261,7 @@ p { font-size: 14px; word-break: break-all; }
           disabled={mutating || locked}
           className="rounded-sm bg-bronze px-3 py-1.5 text-sm text-ivory disabled:opacity-60"
         >
-          {mutating ? "…" : "＋ Familia"}
+          {mutating ? "…" : "+"}
         </button>
       }
     >

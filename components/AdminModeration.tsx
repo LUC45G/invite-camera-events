@@ -163,7 +163,7 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
             disabled={downloading}
             className="rounded-sm bg-bronze px-4 py-1.5 font-sans text-sm text-ivory transition-colors hover:bg-bronze/90 disabled:opacity-60"
           >
-            {downloading ? "Descargando…" : "Descargar ZIP"}
+            <span aria-hidden="true">&#8595;</span><span className="sr-only">{downloading ? "Descargando" : "Descargar ZIP"}</span>
           </button>
           <button
             type="button"
@@ -173,7 +173,7 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
             disabled={photosLoading}
             className="rounded-sm border border-ink/20 bg-ivory px-4 py-1.5 font-sans text-sm text-ink disabled:opacity-60"
           >
-            {photosLoading ? "Actualizando…" : "Actualizar"}
+            <span aria-hidden="true">&#8635;</span><span className="sr-only">{photosLoading ? "Actualizando" : "Actualizar"}</span>
           </button>
           <button
             type="button"
@@ -183,7 +183,7 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
             }}
             className="rounded-sm border border-ink/20 bg-ivory px-3 py-1.5 font-sans text-sm text-ink"
           >
-            Salir
+            <span aria-hidden="true">&#10140;</span><span className="sr-only">Salir</span>
           </button>
         </div>
       </header>

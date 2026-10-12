@@ -304,7 +304,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
   }
 
   return (
-    <div className="codex-shell flex min-h-dvh flex-col bg-cream">
+    <div className="codex-shell camera-shell flex min-h-dvh flex-col bg-cream">
       <header className="flex items-center justify-between px-6 py-4">
         {accessMode === "invitations" ? <Link
           href={`/${slug}`}

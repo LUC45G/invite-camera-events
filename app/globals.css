@@ -194,6 +194,10 @@ button:not(:disabled) {
   padding: 0.75rem;
 }
 
+.codex-shell.camera-shell .text-bronze { color: var(--codex-text) !important; }
+.codex-shell.camera-shell [class*="border-bronze"] { border-color: var(--codex-text) !important; }
+.codex-shell.camera-shell .bg-bronze { background: var(--codex-text) !important; color: var(--codex-bg) !important; }
+
 .codex-toggle {
   position: relative;
   display: inline-flex;

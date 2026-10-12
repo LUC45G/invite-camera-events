@@ -109,7 +109,7 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
   void current;
 
   return (
-    <div className="fixed inset-0 bg-black text-white">
+    <div className="fixed inset-0 bg-[#242b33] text-white">
       {photos.length > 0 ? (
         <div className="relative h-full w-full">
           {photos.map((p, i) => (
@@ -127,13 +127,15 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
           ))}
         </div>
       ) : (
-        <div className="flex h-full flex-col items-center justify-center gap-4">
-          <p className="font-sans text-2xl tracking-[0.3em] uppercase opacity-70">
-            Nuestra boda
-          </p>
-          <p className="font-sans text-lg opacity-40">
-            Esperando las primeras fotos…
-          </p>
+        <div className="flex h-full flex-col items-center justify-center px-6">
+          <div className="flex max-w-xl flex-col items-center gap-4 rounded-sm border border-white/40 bg-white/5 px-8 py-7 text-center">
+            <p className="font-sans text-2xl tracking-[0.3em] uppercase opacity-80">
+              Nuestra boda
+            </p>
+            <p className="font-sans text-lg opacity-70">
+              Esperando las primeras fotos…
+            </p>
+          </div>
         </div>
       )}
 

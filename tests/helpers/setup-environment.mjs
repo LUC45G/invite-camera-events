@@ -3,7 +3,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
-export const state = { db: null, admin: true, queries: [], cloudCalls: [], cloudResult: null };
+export const state = { db: null, admin: true, queries: [], cloudCalls: [], cloudResult: null, resourceError: null, serverScore: null, broadcasts: [],
+  installation: { CLOUDINARY_CLOUD_NAME: 'test', EVENT_SLUG: 'nuestra-boda', DEPLOYMENT_ID: 'local', EVENT_HOSTNAME: 'localhost' } };
 globalThis.__setupTest = state;
 const root = new URL("../../", import.meta.url);
 const moduleUrl = (source) => `data:text/javascript,${encodeURIComponent(source)}`;
@@ -14,11 +15,25 @@ const mocks = {
       state.queries.push({text, values});
       return (await state.db.query(text, values)).rows;
     };
-    export const sql = (strings, ...values) => query(strings.reduce((text, part, i) => text + (i ? "$" + i : "") + part, ""), values);
-    sql.query = query;
+    const statement = (text, values) => ({text, values, then(resolve, reject) { return query(text, values).then(resolve, reject); }});
+    export const sql = (strings, ...values) => statement(strings.reduce((text, part, i) => text + (i ? "$" + i : "") + part, ""), values);
+    sql.query = (text, values = []) => statement(text, values);
+    sql.transaction = (statements) => globalThis.__setupTest.db.transaction(async (tx) => {
+      const results = [];
+      for (const item of statements) {
+        globalThis.__setupTest.queries.push({text: item.text, values: item.values});
+        results.push((await tx.query(item.text, item.values)).rows);
+      }
+      return results;
+    });
   `),
   "@/lib/admin-auth": moduleUrl("export const isAdmin = async () => globalThis.__setupTest.admin;"),
   "@/lib/cloudinary": moduleUrl(`
+    export const verifyUploadedImage = async () => {
+      if (globalThis.__setupTest.resourceError) throw globalThis.__setupTest.resourceError;
+      return {width: 1920, height: 1440, sizeKb: 123, mime: 'image/jpeg', version: 1};
+    };
+    export const classifyUploadedImage = async () => globalThis.__setupTest.serverScore;
     export const signUpload = () => ({timestamp: 123, signature: "test", apiKey: "test"});
     export const thumbnailUrl = (id) => "https://test.invalid/w_480/" + id;
     export const cloudinary = { api: { delete_resources: async (ids) => {
@@ -26,8 +41,8 @@ const mocks = {
     if (state.cloudResult instanceof Error) throw state.cloudResult;
     return state.cloudResult ?? {deleted: Object.fromEntries(ids.map(id => [id, "deleted"]))};
   } } };`),
-  "@/lib/env": moduleUrl("export const env = { CLOUDINARY_CLOUD_NAME: 'test' };"),
-  "@/lib/sse": moduleUrl("export const broadcastPhotoAdded = () => {}; export const broadcastSlideshow = () => {}; export const broadcastPhotosChanged = () => {};"),
+  "@/lib/env": moduleUrl("export const env = globalThis.__setupTest.installation;"),
+  "@/lib/sse": moduleUrl("export const broadcastPhotoAdded = (photo) => {globalThis.__setupTest.broadcasts.push(photo);}; export const broadcastSlideshow = () => {}; export const broadcastPhotosChanged = () => {};"),
   "next/server": moduleUrl("export const NextResponse = Response;"),
   "next/navigation": moduleUrl("export const useRouter = () => ({replace() {}, refresh() {}}); export const notFound = () => { throw new Error('TEST_NOT_FOUND'); };"),
 };

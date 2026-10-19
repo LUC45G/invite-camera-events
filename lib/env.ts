@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseInstallationConfig } from "./installation-config.ts";
 
 const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
@@ -10,7 +11,7 @@ const envSchema = z.object({
   WEDDING_CONTACT_PHONE: z.string().optional(),
 });
 
-export const env = envSchema.parse({
+export const env = { ...parseInstallationConfig(process.env), ...envSchema.parse({
   DATABASE_URL: process.env.DATABASE_URL,
   CLOUDINARY_CLOUD_NAME:
     process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ??
@@ -20,4 +21,4 @@ export const env = envSchema.parse({
   ADMIN_PASSWORD: process.env.ADMIN_PASSWORD,
   WEDDING_CONTACT_NAME: process.env.WEDDING_CONTACT_NAME,
   WEDDING_CONTACT_PHONE: process.env.WEDDING_CONTACT_PHONE,
-});
+}) };

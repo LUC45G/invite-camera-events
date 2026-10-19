@@ -1,5 +1,4 @@
--- Prevent two concurrent setup requests from creating two installation events.
-CREATE UNIQUE INDEX IF NOT EXISTS events_single_installation ON events ((true));
+-- Creation is protected by the unique slug and deployment identity indexes.
 -- statement-breakpoint
 CREATE OR REPLACE FUNCTION keep_event_access_mode() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

@@ -36,12 +36,12 @@ export async function GET(request: Request) {
   let i = 0;
   for (const p of photos) {
     try {
-      const res = await fetch(p.cloudinary_url);
-      if (!res.ok) continue;
+      const res = await fetch(p.cloudinary_url, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error("No se pudo descargar una foto");
       const buf = Buffer.from(await res.arrayBuffer());
       zip.file(`foto-${String(++i).padStart(3, "0")}.jpg`, buf);
     } catch {
-      // saltear foto fallida sin abortar el zip
+      return NextResponse.json({ error: "No se pudo descargar una de las fotos. El ZIP no se gener?; reintent?." }, { status: 502 });
     }
   }
 

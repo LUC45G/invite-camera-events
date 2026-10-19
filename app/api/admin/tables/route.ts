@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { randomBytes } from "node:crypto";
 import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 
@@ -39,24 +40,26 @@ export async function POST() {
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
   if (!getUploadWindowState(event).canEditSetup) return NextResponse.json({ error: "Las familias y sus cupos están bloqueados desde la apertura de la carga" }, { status: 409 });
 
-  const maxRows = (await sql`
-    SELECT COALESCE(MAX(table_number), 0) AS max FROM table_qrs WHERE event_id = ${event.id}
-  `) as { max: string }[];
-  const tableNumber = Number(maxRows[0]?.max ?? 0) + 1;
-
-  const qrRows = (await sql`
-    INSERT INTO table_qrs (event_id, table_number, qr_token)
-    VALUES (${event.id}, ${tableNumber}, encode(gen_random_bytes(6), 'hex'))
-    RETURNING id, qr_token
-  `) as { id: string; qr_token: string }[];
-  const qr = qrRows[0];
-
-  await sql`
-    INSERT INTO guests (event_id, table_qr_id, token, name)
-    VALUES (${event.id}, ${qr.id}, ${qr.qr_token}, ${`Mesa ${tableNumber}`})
-  `;
-
-  return NextResponse.json({ ok: true, table_number: tableNumber });
+  try {
+    const rows = await sql`
+      WITH family AS (
+        INSERT INTO table_qrs (event_id, table_number, qr_token, max_photos)
+        SELECT e.id, COALESCE((SELECT MAX(table_number) FROM table_qrs WHERE event_id = e.id), 0) + 1,
+          ${randomBytes(32).toString("hex")}, e.max_photos_per_session
+        FROM events e WHERE e.id = ${event.id} AND e.setup_complete AND NOT e.deletion_pending AND now() < e.upload_starts_at
+        ON CONFLICT (event_id, table_number) DO NOTHING
+        RETURNING id, event_id, table_number, qr_token
+      ), invitation AS (
+        INSERT INTO guests (event_id, table_qr_id, token, name)
+        SELECT event_id, id, qr_token, 'Familia ' || table_number FROM family
+        RETURNING id
+      ) SELECT table_number FROM family WHERE EXISTS (SELECT 1 FROM invitation)
+    `;
+    if (!rows.length) return NextResponse.json({ error: "La configuración cambió. Recargá y reintentá." }, { status: 409 });
+    return NextResponse.json({ ok: true, table_number: rows[0].table_number });
+  } catch {
+    return NextResponse.json({ error: "No se pudo crear la familia. No se guardaron registros parciales." }, { status: 500 });
+  }
 }
 
 const patchSchema = z.object({

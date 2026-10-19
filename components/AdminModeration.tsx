@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { fetchPhotoPages } from "@/lib/photo-pages";
 import { Download, LogOut, RefreshCw } from "lucide-react";
 import { QrSection } from "@/components/QrSection";
 import { PublicQrPanel } from "@/components/PublicQrPanel";
@@ -41,9 +42,7 @@ export function AdminModeration({ slug, eventName, accessMode, publicToken, sess
     photos: Photo[];
     stats: Record<string, number>;
   }> => {
-    const res = await fetch(`/api/admin/photos?slug=${encodeURIComponent(slug)}`);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? "No se pudo cargar fotos");
+    const data = await fetchPhotoPages<Photo>(`/api/admin/photos?slug=${encodeURIComponent(slug)}`);
     const stats: Record<string, number> = {};
     for (const row of data.stats ?? []) stats[row.status] = Number(row.n);
     return { photos: data.photos ?? [], stats };

@@ -19,7 +19,7 @@ const input = {name: "Admin internal name", starts_at: "2027-11-05T20:00:00-03:0
 test.before(async () => {
   state.db = db;
   await db.exec(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', ""));
-  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql", "007-temporary-test-upload.sql"]) {
+  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql", "007-temporary-test-upload.sql", "008-event-deployment-registry.sql", "009-hostname-and-family-integrity.sql"]) {
     await db.exec(readFileSync(new URL(`../db/migrations/${filename}`, import.meta.url), "utf8"));
   }
 });
@@ -89,7 +89,8 @@ test("solo admin y modo invitaciones pueden leer o editar estas opciones", async
   assert.equal((await settings.PUT(request({}))).status, 401);
   assert.equal(state.queries.length, 0);
   state.admin = true;
-  const {families, ...publicInput} = input;
+  const publicInput = { ...input };
+  delete publicInput.families;
   assert.equal((await setup.PUT(request({...publicInput, access_mode: "public_qr", invitation_message: DEFAULT_INVITATION_MESSAGE}))).status, 400);
   assert.equal((await setup.PUT(request({...publicInput, access_mode: "public_qr"}))).status, 201);
   assert.equal((await settings.GET()).status, 404);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { fetchPhotoPages } from "@/lib/photo-pages";
 
 type Props = { slug: string; interval: number; projectionEnabled: boolean };
 
@@ -16,17 +17,18 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
   const [cycle, setCycle] = useState(0); // cualquier control reinicia el timer
 
   const photosRef = useRef<Photo[]>([]);
-  photosRef.current = photos;
   const indexRef = useRef(0);
-  indexRef.current = index;
+  useEffect(() => {
+    photosRef.current = photos;
+    indexRef.current = index;
+  }, [photos, index]);
 
   // Refresca la lista completa de aprobadas y conserva la foto visible
   // si sigue existiendo; si fue borrada/rechazada, vuelve al inicio.
   const refreshPhotos = useCallback(async () => {
-    const res = await fetch(`/api/photos?slug=${slug}`);
-    if (!res.ok) return;
-    const data = (await res.json()) as { photos?: Photo[] };
-    const next = data.photos ?? [];
+    let next: Photo[];
+    try { next = (await fetchPhotoPages<Photo>(`/api/photos?slug=${encodeURIComponent(slug)}`)).photos; }
+    catch { setConnected(false); return; }
     const currentId = photosRef.current[indexRef.current]?.id;
     const keepIndex = currentId
       ? next.findIndex((p) => p.id === currentId)
@@ -36,14 +38,14 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
   }, [slug]);
 
   useEffect(() => {
-    refreshPhotos();
+    const initialFetch = setTimeout(() => void refreshPhotos(), 0);
+    return () => clearTimeout(initialFetch);
   }, [refreshPhotos]);
 
   // auto-avance (loop cada `speed` segundos, con 2+ fotos)
   // `cycle` reinicia el timer en cada cambio (manual o automático)
   useEffect(() => {
     if (paused || !liveProjectionEnabled || photos.length < 2) return;
-    setIndex((i) => i % photos.length); // re-alinear si el índice quedó mayor que la lista
     const t = setInterval(() => {
       setIndex((i) => (i + 1) % photos.length);
       setCycle((c) => c + 1);
@@ -100,13 +102,9 @@ export function LiveSlideshow({ slug, interval, projectionEnabled }: Props) {
       return es;
     };
 
-    let es = connect();
+    const es = connect();
     return () => es.close();
   }, [slug, refreshPhotos]);
-
-  const current = photos[index];
-
-  void current;
 
   return (
     <div className="fixed inset-0 bg-[#242b33] text-white">

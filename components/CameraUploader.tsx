@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 type Props = { slug: string; qr: string; accessMode: "invitations" | "public_qr"; testMode?: boolean };
 
 type Phase = "starting" | "confirm" | "locked" | "camera" | "preview" | "uploading" | "done";
-type PendingCompletion = { authorizationToken: string; publicId: string; remaining: number | null; width?: number; height?: number; mime?: string; sizeKb?: number; nsfwScore?: number };
+type PendingCompletion = { authorizationToken: string; publicId: string; remaining: number | null; width?: number; height?: number; mime?: string; sizeKb?: number };
 
 const SESSION_KEY = "upload_session_token";
 
@@ -24,7 +24,6 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
   const [uploading, setUploading] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
-  const [nsfwScore, setNsfwScore] = useState<number | null>(null);
   const [tableNumber, setTableNumber] = useState<number | null>(null);
   const [tableName, setTableName] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -201,10 +200,8 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
         if (blob) {
           streamRef.current?.getTracks().forEach((t) => t.stop());
           setPreviewBlob(blob);
-          setNsfwScore(null);
           setPhase("preview");
-          // NSFW en paralelo, sin bloquear: el modelo se carga bajo demanda
-          classifyNsfw(canvas);
+
         }
       },
       "image/jpeg",
@@ -212,28 +209,8 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
     );
   }, []);
 
-  // Clasifica la captura con nsfwjs. Nunca bloquea la subida: si el modelo
-  // falla o tarda, el score queda null y la foto entra como pendiente normal.
-  async function classifyNsfw(canvas: HTMLCanvasElement) {
-    try {
-      const nsfw = await import("nsfwjs").then((m) => m.load());
-      const predictions = await Promise.race([
-        nsfw.classify(canvas),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("timeout")), 12000),
-        ),
-      ]);
-      const bad = predictions.find(
-        (p) => p.className === "Porn" || p.className === "Hentai" || p.className === "Sexy",
-      );
-      setNsfwScore(bad ? bad.probability : 0);
-    } catch {
-      setNsfwScore(null);
-    }
-  }
-
   // subir la foto: sign → Cloudinary → complete
-  async function upload(blob: Blob, score: number | null) {
+  async function upload(blob: Blob) {
     if (!sessionToken) return;
     setUploading(true);
     setError(null);
@@ -245,7 +222,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
         const retryData = await retry.json();
         if (!retry.ok) throw new Error(retryData.error ?? "No se pudo registrar la foto");
         setPendingCompletion(null);
-        setRemaining(typeof pendingCompletion.remaining === "number" ? pendingCompletion.remaining - 1 : null);
+        setRemaining(typeof pendingCompletion.remaining === "number" ? pendingCompletion.remaining : null);
         setPhase("done");
         return;
       }
@@ -264,6 +241,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
       form.append("signature", sign.signature);
       form.append("folder", sign.folder);
       form.append("public_id", sign.publicId);
+      form.append("overwrite", "false");
 
       const cloudRes = await fetch(
         `https://api.cloudinary.com/v1_1/${sign.cloudName}/image/upload`,
@@ -271,7 +249,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
       );
       if (!cloudRes.ok) throw new Error("Cloudinary rechazó la subida");
       const cloud = await cloudRes.json();
-      failedAfterCloudinary = { authorizationToken: sign.authorizationToken, publicId: cloud.public_id, remaining: sign.remaining, width: cloud.width, height: cloud.height, mime: "image/jpeg", sizeKb: Math.round(cloud.bytes / 1024), nsfwScore: score ?? undefined };
+      failedAfterCloudinary = { authorizationToken: sign.authorizationToken, publicId: cloud.public_id, remaining: sign.remaining, width: cloud.width, height: cloud.height, mime: "image/jpeg", sizeKb: Math.round(cloud.bytes / 1024) };
       setPendingCompletion(failedAfterCloudinary);
 
       const completeRes = await fetch("/api/upload/complete", {
@@ -285,13 +263,12 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
           height: cloud.height,
           mime: "image/jpeg",
           sizeKb: Math.round(cloud.bytes / 1024),
-          nsfwScore: score ?? undefined,
         }),
       });
       const complete = await completeRes.json();
       if (!completeRes.ok) throw new Error(complete.error ?? "No se pudo registrar la foto");
 
-      setRemaining(typeof sign.remaining === "number" ? sign.remaining - 1 : null);
+      setRemaining(typeof sign.remaining === "number" ? sign.remaining : null);
       setPendingCompletion(null);
       setPhase("done");
     } catch (e) {
@@ -405,6 +382,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
 
         {/* Preview 4:3 */}
         {phase === "preview" && previewBlob && (
+          // eslint-disable-next-line @next/next/no-img-element -- Local capture blob; no remote image optimization.
           <img
             src={URL.createObjectURL(previewBlob)}
             alt="Preview de la foto"
@@ -439,7 +417,7 @@ export function CameraUploader({ slug, qr, accessMode, testMode = false }: Props
               type="button"
               disabled={uploading || !previewBlob}
               aria-busy={uploading}
-              onClick={() => previewBlob && upload(previewBlob, nsfwScore)}
+              onClick={() => previewBlob && upload(previewBlob)}
               className="rounded-sm bg-bronze px-8 py-3 text-lg text-ivory transition-colors hover:bg-bronze/90 disabled:opacity-60"
             >
               {uploading ? "Subiendo…" : "Subir"}

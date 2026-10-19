@@ -1,7 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { z } from "zod";
 import { sql } from "@/lib/db";
-import { thumbnailUrl } from "@/lib/cloudinary";
+import { thumbnailUrl, verifyUploadedImage, classifyUploadedImage } from "@/lib/cloudinary";
 import { broadcastPhotoAdded } from "@/lib/sse";
 import { findSession, getEventById, findUploadAuthorization, touchSession, findTestRunById, completeTestRun } from "@/lib/upload-db";
 
@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   const parsed = completeSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
-  const { sessionToken, authorizationToken, publicId, width, height, mime, sizeKb, nsfwScore } = parsed.data;
+  const { sessionToken, authorizationToken, publicId } = parsed.data;
   const session = await findSession(sessionToken);
   if (!session) return NextResponse.json({ error: "Sesión inválida" }, { status: 403 });
   const event = await getEventById(session.event_id);
@@ -47,7 +47,12 @@ export async function POST(request: Request) {
   if (existing.length) return NextResponse.json({ ok: true, duplicate: true, id: existing[0].id });
   if (authorization.status !== "reserved") return NextResponse.json({ error: "La autorización ya no está disponible" }, { status: 409 });
 
-  const thumb = thumbnailUrl(publicId);
+  const fullId = `${folder}/${authorization.public_id}`;
+  let resource;
+  try { resource = await verifyUploadedImage(fullId); }
+  catch { return NextResponse.json({ error: "No se pudo verificar la foto en Cloudinary. Reintentá la confirmación." }, { status: 502 }); }
+  const nsfwScore = await classifyUploadedImage(fullId, resource.version);
+  const thumb = thumbnailUrl(fullId);
   const full = thumb.replace(/w_480/, "w_1920");
   const status = nsfwScore != null && nsfwScore < 0.7 ? "approved" : "pending";
   const inserted = await sql`
@@ -68,8 +73,8 @@ export async function POST(request: Request) {
       nsfw_score, status
     ) SELECT
       ${session.event_id}, ${session.table_qr_id}, ${session.id}, ${authorization.id}, ${authorization.test_run_id},
-      ${publicId}, ${full}, ${thumb},
-      ${width ?? null}, ${height ?? null}, ${mime ?? null}, ${sizeKb ?? null},
+      ${fullId}, ${full}, ${thumb},
+      ${resource.width}, ${resource.height}, ${resource.mime}, ${resource.sizeKb},
       ${nsfwScore ?? null}, ${status}
     FROM consumed
     RETURNING id`;
@@ -80,7 +85,7 @@ export async function POST(request: Request) {
   }
   await touchSession(session.id);
   if (testMode && authorization.test_run_id) await completeTestRun(authorization.test_run_id);
-  broadcastPhotoAdded({ id: inserted[0].id, url: thumb });
+  if (!testMode) broadcastPhotoAdded({ id: inserted[0].id, url: thumb });
   return NextResponse.json({ ok: true, id: inserted[0].id });
 }
 

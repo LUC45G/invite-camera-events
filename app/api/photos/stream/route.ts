@@ -4,6 +4,7 @@ import {
   PHOTOS_CHANGED_EVENT,
   SLIDESHOW_EVENT,
 } from "@/lib/sse";
+import { getAdminEvent } from "@/lib/event-context";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -11,6 +12,7 @@ export const runtime = "nodejs";
 // SSE: notifica fotos nuevas y controles de slideshow a pantallas /live.
 // Eventos: connected, new_photos, slideshow, heartbeat (15s).
 export async function GET(request: Request) {
+  if (!(await getAdminEvent())) return new Response("Evento no encontrado", { status: 404 });
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

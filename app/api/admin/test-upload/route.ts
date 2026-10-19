@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/admin-auth";
 import { cloudinary } from "@/lib/cloudinary";
 import { getAdminEvent } from "@/lib/event-context";
 import { createTestRun } from "@/lib/upload-db";
+import { deleteResourcesConfirmed } from "@/lib/resource-deletion";
+import { uploadResourceId } from "@/lib/upload-resource";
 
 export const dynamic = "force-dynamic";
 
@@ -75,13 +77,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
+  await sql`UPDATE upload_test_runs SET status = 'cleanup_pending' WHERE id = ${run.id}`;
   const photos = await sql`SELECT cloudinary_public_id FROM photos WHERE test_run_id = ${run.id}`;
   const authorizations = await sql`
-    SELECT public_id FROM upload_authorizations
-    WHERE test_run_id = ${run.id} AND status = 'reserved'`;
-  const resources = [...photos, ...authorizations].map((p) => String(p.cloudinary_public_id ?? p.public_id));
+    SELECT public_id FROM upload_authorizations WHERE test_run_id = ${run.id}`;
+  const resources = [...photos.map((p) => String(p.cloudinary_public_id)),
+    ...authorizations.map((a) => uploadResourceId(event, { public_id: String(a.public_id), test_run_id: run.id }))];
   try {
-    if (resources.length) await cloudinary.api.delete_resources([...new Set(resources)], { resource_type: "image", type: "upload", invalidate: true });
+    await deleteResourcesConfirmed((ids) => cloudinary.api.delete_resources(ids, { resource_type: "image", type: "upload", invalidate: true }), resources);
   } catch {
     await sql`UPDATE upload_test_runs SET status = 'cleanup_pending' WHERE id = ${run.id}`;
     return NextResponse.json({ error: "No se pudieron borrar todos los recursos. La prueba queda disponible para reintentar." }, { status: 502 });

@@ -31,12 +31,12 @@ const authorize = async (sessionToken) => { const response = await sign.POST(req
 test.before(async () => {
   state.db = db;
   await db.exec(readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8").replace('CREATE EXTENSION IF NOT EXISTS "pgcrypto";', ""));
-  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql", "007-temporary-test-upload.sql"]) {
+  for (const filename of ["001-event-setup.sql", "002-single-event-creation.sql", "003-public-upload-sessions.sql", "004-invitation-message-contact.sql", "005-family-pause.sql", "006-upload-authorizations.sql", "007-temporary-test-upload.sql", "008-event-deployment-registry.sql", "009-hostname-and-family-integrity.sql"]) {
     await db.exec(readFileSync(new URL(`../db/migrations/${filename}`, import.meta.url), "utf8"));
   }
 });
 test.beforeEach(async () => {
-  await db.exec("TRUNCATE events CASCADE"); state.admin = true;
+  await db.exec("TRUNCATE events CASCADE"); state.admin = true; state.serverScore = null; state.resourceError = null; state.broadcasts = [];
   assert.equal((await setup.PUT(request(input))).status, 201);
   event = (await db.query("SELECT * FROM events")).rows[0];
   await db.exec("UPDATE events SET upload_starts_at = now() - interval '1 minute', upload_ends_at = now() + interval '1 hour'");
@@ -192,6 +192,7 @@ test("temporary QR isolates one upload, applies the NSFW threshold, and cleans u
   const authorization = await sign.POST(request({sessionToken: sessionData.sessionToken}));
   const authorizationData = await authorization.json();
   assert.equal(authorization.status, 200, JSON.stringify(authorizationData));
+  state.serverScore = 0.69;
   const completed = await complete.POST(request({sessionToken: sessionData.sessionToken, authorizationToken: authorizationData.authorizationToken, publicId: authorizationData.publicId, nsfwScore: 0.69}));
   assert.equal(completed.status, 200);
 
@@ -212,6 +213,7 @@ test("temporary QR isolates one upload, applies the NSFW threshold, and cleans u
   const thresholdRun = (await (await testUpload.POST(request({slug: event.slug, action: "create"}))).json()).run;
   const thresholdSession = await (await sessions.POST(request({qr: thresholdRun.token, slug: event.slug, accessMode: "public_qr"}))).json();
   const thresholdAuthorization = await (await sign.POST(request({sessionToken: thresholdSession.sessionToken}))).json();
+  state.serverScore = 0.7;
   await complete.POST(request({sessionToken: thresholdSession.sessionToken, authorizationToken: thresholdAuthorization.authorizationToken, publicId: thresholdAuthorization.publicId, nsfwScore: 0.7}));
   const thresholdPhotos = await (await testUpload.GET(new Request(`http://local/api?slug=${event.slug}`))).json();
   assert.equal(thresholdPhotos.photos[0].status, "pending");

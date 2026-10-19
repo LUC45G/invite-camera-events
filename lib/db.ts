@@ -7,6 +7,8 @@ export type Event = {
   id: string;
   name: string;
   slug: string;
+  deployment_id: string | null;
+  hostname: string | null;
   reveal_at: string | null;
   upload_open: boolean;
   max_photos_per_session: number;

@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(255) NOT NULL,
   slug VARCHAR(100) UNIQUE NOT NULL,
+  deployment_id VARCHAR(128),
+  hostname VARCHAR(255),
   reveal_at TIMESTAMPTZ,
   upload_open BOOLEAN DEFAULT true,
   max_photos_per_session INT DEFAULT 24,

@@ -19,6 +19,7 @@ const mocks = {
     return Promise.resolve([]);
   };`),
   "@/lib/admin-auth": moduleUrl("export const isAdmin = async () => globalThis.__adminScopeTest.admin;"),
+  "@/lib/env": moduleUrl("export const env = { DATABASE_URL: 'test', EVENT_SLUG: 'custom-slug', DEPLOYMENT_ID: 'local', EVENT_HOSTNAME: 'localhost', CLOUDINARY_CLOUD_NAME: 'test', CLOUDINARY_API_KEY: 'test', CLOUDINARY_API_SECRET: 'test', ADMIN_PASSWORD: 'test' };"),
   "@/lib/cloudinary": moduleUrl("export const cloudinary = { api: { usage: async () => { globalThis.__adminScopeTest.cloudCalls++; return {}; } }, uploader: { destroy: async () => { globalThis.__adminScopeTest.cloudCalls++; } } };"),
   "@/lib/sse": moduleUrl("export const broadcastSlideshow = () => {}; export const broadcastPhotosChanged = () => {};"),
   "next/server": moduleUrl("export const NextResponse = Response;"),

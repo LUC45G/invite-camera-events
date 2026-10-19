@@ -7,6 +7,9 @@ Configurar en Vercel y en `.env.local`:
 | Variable | Uso |
 |---|---|
 | `DATABASE_URL` | Connection string de Neon PostgreSQL |
+| `EVENT_SLUG` | Slug único de este evento; obligatorio en producción |
+| `DEPLOYMENT_ID` | Identificador persistente y único de este clon |
+| `EVENT_HOSTNAME` | Dominio exacto, sin protocolo ni puerto; `localhost` en desarrollo |
 | `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME` | Cloudinary desde el navegador |
 | `CLOUDINARY_API_KEY` | Firmas de subida |
 | `CLOUDINARY_API_SECRET` | Firmas y limpieza de recursos |
@@ -57,8 +60,10 @@ Ejecutar el reset real solo sobre una base de desarrollo:
 npm run db:reset -- --yes
 ```
 
-El reset trunca datos, reaplica schema y migraciones, crea un evento listo para
-usar y genera nuevos tokens. Los QRs anteriores quedan invalidos. En modo
+El reset reaplica schema y migraciones, limpia en Cloudinary solo el evento
+identificado por las tres variables, elimina sus referencias y crea un evento
+de ejemplo con nuevos tokens. No trunca tablas compartidas. Si Cloudinary no
+confirma un borrado, conserva las referencias para reintentar. Los QRs anteriores quedan invalidos. En modo
 `public_qr` crea un solo token; en modo `invitations` crea las familias,
 invitaciones y cupos configurados.
 
@@ -93,7 +98,7 @@ tiene una sesion y cupo independiente. La ruta principal del evento responde
 
 ## 5. Deploy y prueba previa
 
-1. Configurar todas las variables en Vercel.
+1. Configurar todas las variables en Vercel, incluidas las tres de identidad antes del build.
 2. Desplegar la rama elegida.
 3. Ejecutar `npm run db:migrate` contra Neon antes de usar el admin.
 4. Abrir `/admin` desde la URL HTTPS de Vercel.
@@ -119,8 +124,10 @@ quedan aisladas de las consultas reales.
    pendientes se indiquen en moderacion.
 6. Descargar el ZIP de fotos aprobadas antes de borrar el evento.
 
-La regla automatica de moderacion aprueba scores NSFW menores a `0.7`. Scores
-de `0.7` o nulos quedan pendientes.
+La regla automatica de moderacion aprueba scores NSFW menores a `0.7`, calculados
+en el servidor sobre el recurso verificado de Cloudinary. El score del navegador
+se ignora. Scores de `0.7` o nulos quedan pendientes. El modelo incluido se carga
+una vez por proceso; medir CPU/RAM y tiempos de respuesta antes del evento real.
 
 ## 7. Contingencias
 

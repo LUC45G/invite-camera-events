@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { getEvent } from "@/lib/event-data";
+import { getEventBySlug } from "@/lib/upload-db";
 import { sql } from "@/lib/db";
 import { GalleryGrid, type GalleryPhoto } from "@/components/GalleryGrid";
 
@@ -7,17 +7,12 @@ export const dynamic = "force-dynamic";
 
 type Props = PageProps<"/[slug]/galeria">;
 
-// Galería post-reveal: solo se ve si pasó reveal_at y no quedan pendientes.
+// Galería post-reveal: solo fotos aprobadas del evento, sin pruebas.
 export default async function GalleryPage({ params }: Props) {
   const { slug } = await params;
-  const event = getEvent(slug);
-  if (!event) return notFound();
-
-  const events = (await sql`
-    SELECT reveal_at FROM events WHERE slug = ${slug} LIMIT 1
-  `) as { reveal_at: string | null }[];
-
-  const revealAt = events[0]?.reveal_at ? new Date(events[0].reveal_at) : null;
+  const event = await getEventBySlug(slug);
+  if (!event || !event.setup_complete || event.deletion_pending) return notFound();
+  const revealAt = event.reveal_at ? new Date(event.reveal_at) : null;
   const now = new Date();
 
   const open = revealAt !== null && now >= revealAt;
@@ -43,7 +38,7 @@ export default async function GalleryPage({ params }: Props) {
   const photos = (await sql`
     SELECT p.id, p.cloudinary_url, p.thumbnail_url FROM photos p
     JOIN events e ON e.id = p.event_id
-    WHERE e.slug = ${slug} AND p.status = 'approved'
+    WHERE p.event_id = ${event.id} AND p.status = 'approved' AND p.test_run_id IS NULL
     ORDER BY p.created_at ASC
   `) as GalleryPhoto[];
 

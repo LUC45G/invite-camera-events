@@ -1,8 +1,15 @@
 import { sql, type Event } from "@/lib/db";
+import { env } from "@/lib/env";
 import { selectInstallationEvent } from "./event-selection";
 
 export async function getInstallationEvent(): Promise<Event | null> {
-  const events = (await sql`SELECT * FROM events ORDER BY created_at, id LIMIT 2`) as Event[];
+  const events = (await sql`
+    SELECT * FROM events
+    WHERE slug = ${env.EVENT_SLUG}
+      AND deployment_id = ${env.DEPLOYMENT_ID}
+      AND hostname = ${env.EVENT_HOSTNAME}
+    LIMIT 2
+  `) as Event[];
   return selectInstallationEvent(events);
 }
 

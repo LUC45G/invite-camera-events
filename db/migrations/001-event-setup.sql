@@ -17,6 +17,6 @@ ALTER TABLE table_qrs ADD COLUMN IF NOT EXISTS photo_count INT NOT NULL DEFAULT 
 -- statement-breakpoint
 UPDATE table_qrs t SET photo_count = GREATEST(
   t.photo_count,
-  (SELECT count(*)::int FROM photos p WHERE p.table_qr_id = t.id),
+  (SELECT count(*)::int FROM photos p WHERE p.table_qr_id = t.id AND to_jsonb(p)->>'authorization_id' IS NULL),
   (SELECT COALESCE(sum(s.photo_count), 0)::int FROM upload_sessions s WHERE s.table_qr_id = t.id)
 );

@@ -1,14 +1,21 @@
-// Reset seguro de desarrollo: borra todo, reaplica schema/migraciones y crea
+// Reset de desarrollo: limpia solo el evento configurado y crea
 // un evento nuevo. Sin --yes solo muestra el plan y nunca modifica la base.
 // Uso: node --experimental-strip-types scripts/reset-db.mts [--yes]
 import { neon } from "@neondatabase/serverless";
-import { readFileSync, readdirSync } from "node:fs";
+import { applyMigrations } from "./migration-utils.mts";
+import { parseInstallationConfig } from "../lib/installation-config.ts";
+import { deleteEventData } from "../lib/event-deletion.ts";
+import { v2 as cloudinary } from "cloudinary";
 import { randomBytes } from "node:crypto";
 import { config } from "dotenv";
 
+config({ path: ".env.local", quiet: true });
+if (!process.env.DATABASE_URL) throw new Error("Falta DATABASE_URL");
+const sql = neon(process.env.DATABASE_URL);
+
 // ===== CONFIGURACION DE DESARROLLO (editar antes de correr con --yes) =====
 const EVENT_NAME = "Boda Sofia & Mateo";
-const EVENT_SLUG = "nuestra-boda";
+const { EVENT_SLUG, DEPLOYMENT_ID, EVENT_HOSTNAME } = parseInstallationConfig(process.env);
 const ACCESS_MODE = "invitations" as "invitations" | "public_qr";
 const NUM_FAMILIES = 5;
 const MAX_PHOTOS = 24;
@@ -18,53 +25,11 @@ const UPLOAD_ENDS_AT = "2027-11-06 12:00:00-03";
 const REVEAL_AT = "2027-11-07 12:00:00-03";
 // ===========================================================================
 
-config({ path: ".env.local", quiet: true });
-if (!process.env.DATABASE_URL) throw new Error("Falta DATABASE_URL");
-const sql = neon(process.env.DATABASE_URL);
 const yes = process.argv.includes("--yes");
 const publicQrToken = ACCESS_MODE === "public_qr" ? randomBytes(32).toString("hex") : null;
 
-function splitSqlStatements(source: string): string[] {
-  const result: string[] = [];
-  let start = 0;
-  let i = 0;
-  let quote: "'" | '"' | null = null;
-  let dollarTag: string | null = null;
-  let lineComment = false;
-  let blockComment = false;
-
-  while (i < source.length) {
-    const current = source[i];
-    const next = source[i + 1];
-    if (lineComment) { if (current === "\n") lineComment = false; i++; continue; }
-    if (blockComment) { if (current === "*" && next === "/") { blockComment = false; i += 2; } else i++; continue; }
-    if (dollarTag) { if (source.startsWith(dollarTag, i)) { i += dollarTag.length; dollarTag = null; } else i++; continue; }
-    if (quote) {
-      if (current === quote) { if (next === quote) i += 2; else { quote = null; i++; } }
-      else i++;
-      continue;
-    }
-    if (current === "-" && next === "-") { lineComment = true; i += 2; continue; }
-    if (current === "/" && next === "*") { blockComment = true; i += 2; continue; }
-    if (current === "'" || current === '"') { quote = current; i++; continue; }
-    if (current === "$") {
-      const match = source.slice(i).match(/^\$[A-Za-z_0-9]*\$/);
-      if (match) { dollarTag = match[0]; i += dollarTag.length; continue; }
-    }
-    if (current === ";") {
-      const statement = source.slice(start, i).trim();
-      if (statement) result.push(statement);
-      start = i + 1;
-    }
-    i++;
-  }
-  const final = source.slice(start).trim();
-  if (final) result.push(final);
-  return result;
-}
-
 const plan = [
-  `TRUNCATE evento, familias, invitados, sesiones, fotos y pruebas (${EVENT_SLUG})`,
+  `Borrar solamente el evento ${EVENT_SLUG} (${EVENT_HOSTNAME}) y sus relaciones`,
   "Reaplicar db/schema.sql y todas las migraciones",
   `Crear evento ${ACCESS_MODE === "public_qr" ? "con QR unico" : `con ${NUM_FAMILIES} familias`} y ventana de carga configurada`,
   "Regenerar tokens: los QRs anteriores quedan invalidos",
@@ -78,23 +43,20 @@ if (!yes) {
 }
 
 console.log("Ejecutando reset...\n");
-const schema = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
-for (const statement of splitSqlStatements(schema)) await sql.query(statement);
-const migrations = new URL("../db/migrations/", import.meta.url);
-for (const filename of readdirSync(migrations).filter((name) => name.endsWith(".sql")).sort()) {
-  const source = readFileSync(new URL(filename, migrations), "utf8");
-  for (const statement of splitSqlStatements(source)) await sql.query(statement);
-  console.log(`Migracion aplicada: ${filename}`);
+await applyMigrations((statements) => sql.transaction(statements.map((s) => sql.query(s))));
+const owned = await sql`SELECT id FROM events WHERE slug = ${EVENT_SLUG} AND deployment_id = ${DEPLOYMENT_ID} AND hostname = ${EVENT_HOSTNAME}`;
+if (owned[0]) {
+  cloudinary.config({ cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME ?? process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET });
+  await deleteEventData((text, values) => sql.query(text, values),
+    (ids) => cloudinary.api.delete_resources(ids, { resource_type: "image", type: "upload", invalidate: true }), String(owned[0].id));
 }
-await sql.query("TRUNCATE TABLE photos, upload_sessions, upload_authorizations, upload_test_runs, guests, table_qrs, events RESTART IDENTITY CASCADE");
-console.log("TRUNCATE OK");
-
 const [event] = await sql`
   INSERT INTO events (
-    name, slug, access_mode, starts_at, reveal_at, upload_starts_at,
+    name, slug, deployment_id, hostname, access_mode, starts_at, reveal_at, upload_starts_at,
     upload_ends_at, max_photos_per_session, setup_complete, public_qr_token
   ) VALUES (
-    ${EVENT_NAME}, ${EVENT_SLUG}, ${ACCESS_MODE}, ${STARTS_AT}, ${REVEAL_AT},
+    ${EVENT_NAME}, ${EVENT_SLUG}, ${DEPLOYMENT_ID}, ${EVENT_HOSTNAME}, ${ACCESS_MODE}, ${STARTS_AT}, ${REVEAL_AT},
     ${UPLOAD_STARTS_AT}, ${UPLOAD_ENDS_AT}, ${MAX_PHOTOS}, true,
     ${publicQrToken}
   ) RETURNING id, public_qr_token`;

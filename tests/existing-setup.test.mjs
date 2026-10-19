@@ -23,13 +23,15 @@ test.before(async () => {
   await db.exec(readFileSync(new URL("../db/migrations/005-family-pause.sql", import.meta.url), "utf8"));
   await db.exec(readFileSync(new URL("../db/migrations/006-upload-authorizations.sql", import.meta.url), "utf8"));
   await db.exec(readFileSync(new URL("../db/migrations/007-temporary-test-upload.sql", import.meta.url), "utf8"));
+  await db.exec(readFileSync(new URL("../db/migrations/008-event-deployment-registry.sql", import.meta.url), "utf8"));
+  await db.exec(readFileSync(new URL("../db/migrations/009-hostname-and-family-integrity.sql", import.meta.url), "utf8"));
 });
 test.beforeEach(async () => {
   await db.exec("TRUNCATE events CASCADE");
   state.admin = true; state.queries = []; state.cloudCalls = []; state.cloudResult = null;
-  const event = await db.query("INSERT INTO events(name, slug, max_photos_per_session) VALUES('Legacy wedding', 'custom-slug', 30) RETURNING id");
+  const event = await db.query("INSERT INTO events(name, slug, deployment_id, hostname, max_photos_per_session) VALUES('Legacy wedding', 'nuestra-boda', 'local', 'localhost', 30) RETURNING id");
   eventId = event.rows[0].id;
-  const family = await db.query("INSERT INTO table_qrs(event_id, table_number, qr_token, max_photos) VALUES($1, 1, 'legacy-token-1', 35) RETURNING id", [eventId]);
+  const family = await db.query("INSERT INTO table_qrs(event_id, table_number, qr_token, max_photos, legacy_photo_count) VALUES($1, 1, 'legacy-token-1', 35, 7) RETURNING id", [eventId]);
   const familyId = family.rows[0].id;
   await db.query("INSERT INTO guests(event_id, table_qr_id, token, name, rsvp_status) VALUES($1, $2, 'legacy-token-1', 'Family', 'accepted')", [eventId, familyId]);
   const upload = await db.query("INSERT INTO upload_sessions(event_id, table_qr_id, session_token, photo_count) VALUES($1, $2, 'legacy-session', 7) RETURNING id", [eventId, familyId]);
@@ -46,7 +48,7 @@ test("migración repetida conserva tokens/RSVP y reconstruye consumo sin duplica
 });
 
 test("la cámara permanece bloqueada antes de confirmar el setup", async () => {
-  const response = await session.POST(request({qr: "legacy-token-1", confirmed: true}));
+  const response = await session.POST(request({qr: "legacy-token-1", slug: "nuestra-boda", confirmed: true}));
   assert.equal(response.status, 423);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM upload_sessions")).rows[0].n, 1);
 });
@@ -72,9 +74,9 @@ test("reveal temprano y cambio de modalidad no alteran el evento", async () => {
 
 test("borrar exige admin, confirmación exacta y el evento correcto", async () => {
   state.admin = false;
-  assert.equal((await wipe.POST(request({slug: "custom-slug", confirmation: "BORRAR TODO"}))).status, 401);
+  assert.equal((await wipe.POST(request({slug: "nuestra-boda", confirmation: "BORRAR TODO"}))).status, 401);
   state.admin = true;
-  assert.equal((await wipe.POST(request({slug: "custom-slug", confirmation: "borrar"}))).status, 400);
+  assert.equal((await wipe.POST(request({slug: "nuestra-boda", confirmation: "borrar"}))).status, 400);
   assert.equal((await wipe.POST(request({slug: "other", confirmation: "BORRAR TODO"}))).status, 404);
   assert.equal(state.cloudCalls.length, 0);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM events")).rows[0].n, 1);
@@ -82,20 +84,20 @@ test("borrar exige admin, confirmación exacta y el evento correcto", async () =
 
 test("Cloudinary incompleto conserva referencias y bloquea carga hasta reintentar", async () => {
   state.cloudResult = {deleted: {}};
-  const response = await wipe.POST(request({slug: "custom-slug", confirmation: "BORRAR TODO"}));
+  const response = await wipe.POST(request({slug: "nuestra-boda", confirmation: "BORRAR TODO"}));
   assert.equal(response.status, 502);
   assert.equal((await db.query("SELECT deletion_pending FROM events")).rows[0].deletion_pending, true);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM photos")).rows[0].n, 1);
   assert.equal((await setup.POST(request(validSettings))).status, 409);
   state.cloudResult = {deleted: {"legacy-photo": "not_found"}};
-  assert.equal((await wipe.POST(request({slug: "custom-slug", confirmation: "BORRAR TODO"}))).status, 200);
+  assert.equal((await wipe.POST(request({slug: "nuestra-boda", confirmation: "BORRAR TODO"}))).status, 200);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM events")).rows[0].n, 0);
   assert.equal((await db.query("SELECT count(*)::int AS n FROM photos")).rows[0].n, 0);
 });
 
 test("Cloudinary caído no pierde los recursos para un próximo intento", async () => {
   state.cloudResult = new Error("offline");
-  assert.equal((await wipe.POST(request({slug: "custom-slug", confirmation: "BORRAR TODO"}))).status, 502);
+  assert.equal((await wipe.POST(request({slug: "nuestra-boda", confirmation: "BORRAR TODO"}))).status, 502);
   assert.equal((await db.query("SELECT cloudinary_public_id FROM photos")).rows[0].cloudinary_public_id, "legacy-photo");
 });
 

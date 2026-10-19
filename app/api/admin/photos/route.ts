@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { isAdmin } from "@/lib/admin-auth";
 import { cloudinary } from "@/lib/cloudinary";
 import { broadcastPhotosChanged } from "@/lib/sse";
+import { deleteResourcesConfirmed } from "@/lib/resource-deletion";
 
 import { getAdminEvent } from "@/lib/event-context";
 
@@ -20,6 +21,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const event = await getAdminEvent(searchParams.get("slug"));
   if (!event) return NextResponse.json({ error: "Evento no encontrado" }, { status: 404 });
+  const offset = z.coerce.number().int().min(0).safeParse(searchParams.get("offset") ?? 0);
+  if (!offset.success) return NextResponse.json({ error: "Página inválida" }, { status: 400 });
 
   const photos = await sql`
     SELECT p.id, p.cloudinary_public_id, p.cloudinary_url, p.thumbnail_url,
@@ -30,8 +33,8 @@ export async function GET(request: Request) {
     ORDER BY
       CASE p.status WHEN 'pending' THEN 0 ELSE 1 END,
       p.nsfw_score DESC NULLS LAST,
-      p.created_at DESC
-    LIMIT 500`;
+       p.created_at DESC, p.id ASC
+    LIMIT 501 OFFSET ${offset.data}`;
 
   const stats = await sql`
     SELECT status, count(*) AS n FROM photos p
@@ -39,7 +42,7 @@ export async function GET(request: Request) {
     WHERE e.id = ${event.id} AND p.test_run_id IS NULL
     GROUP BY status`;
 
-  return NextResponse.json({ photos, stats });
+  return NextResponse.json({ photos: photos.slice(0, 500), stats, nextOffset: photos.length > 500 ? offset.data + 500 : null });
 }
 
 const actionSchema = z.object({
@@ -83,9 +86,9 @@ export async function POST(request: Request) {
 
   // delete: permanente — de Cloudinary y de la DB
   try {
-    await cloudinary.uploader.destroy(photo.cloudinary_public_id);
+    await deleteResourcesConfirmed((ids) => cloudinary.api.delete_resources(ids, { resource_type: "image", type: "upload", invalidate: true }), [photo.cloudinary_public_id]);
   } catch {
-    // si falla el destroy, igual quitamos la referencia de la DB
+    return NextResponse.json({ error: "No se pudo borrar la foto en Cloudinary. Se conserva para reintentar." }, { status: 502 });
   }
   await sql`DELETE FROM photos WHERE id = ${id} AND event_id = ${event.id}`;
   broadcastPhotosChanged({ id: photo.id, deleted: true });

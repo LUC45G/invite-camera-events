@@ -3,7 +3,7 @@ import { isAdmin } from "@/lib/admin-auth";
 import { getInstallationEvent } from "@/lib/event-context";
 import { sql } from "@/lib/db";
 import { eventSchedule, retainedSetupSchema, newEventSetupSchema } from "@/lib/setup-policy";
-import { weddingEvent } from "@/lib/event-data";
+import { env } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 
 export const dynamic = "force-dynamic";
@@ -62,9 +62,9 @@ export async function PUT(request: Request) {
   try {
     rows = await sql`
     WITH created_event AS (
-      INSERT INTO events (name, slug, access_mode, starts_at, reveal_at,
+      INSERT INTO events (name, slug, deployment_id, hostname, access_mode, starts_at, reveal_at,
         upload_starts_at, upload_ends_at, max_photos_per_session, setup_complete, public_qr_token, invitation_message, invitation_contact)
-      VALUES (${data.name}, ${weddingEvent.slug}, ${data.access_mode}, ${data.starts_at}, ${data.reveal_at},
+      VALUES (${data.name}, ${env.EVENT_SLUG}, ${env.DEPLOYMENT_ID}, ${env.EVENT_HOSTNAME}, ${data.access_mode}, ${data.starts_at}, ${data.reveal_at},
         ${schedule.upload_starts_at}, ${schedule.upload_ends_at}, ${data.max_photos_per_session}, true, ${publicToken}, ${invitationMessage}, ${invitationContact})
       ON CONFLICT DO NOTHING RETURNING id, slug
     ), created_families AS (

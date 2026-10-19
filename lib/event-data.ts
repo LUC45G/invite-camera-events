@@ -2,6 +2,8 @@
 // Placeholders genéricos: editar acá con los datos reales de la boda.
 // ponytail: config estática en archivo; un panel de edición es nice-to-have futuro.
 
+import { env } from "@/lib/env";
+
 export type ScheduleItem = {
   time: string; // "16:00"
   title: string;
@@ -56,7 +58,7 @@ export type WeddingEvent = {
 };
 
 export const weddingEvent: WeddingEvent = {
-  slug: "nuestra-boda",
+  slug: env.EVENT_SLUG,
   coupleNames: "Daniela & Miguel",
   date: "Domingo 07 de febrero de 2027",
   time: "16:00",

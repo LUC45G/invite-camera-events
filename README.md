@@ -47,6 +47,9 @@ Copiá `.env.example` como `.env.local` y completá:
 
 ```env
 DATABASE_URL=
+EVENT_SLUG=nuestra-boda
+DEPLOYMENT_ID=evento-nuestra-boda-01
+EVENT_HOSTNAME=localhost
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 CLOUDINARY_API_KEY=
 CLOUDINARY_API_SECRET=
@@ -55,7 +58,9 @@ WEDDING_CONTACT_NAME=
 WEDDING_CONTACT_PHONE=
 ```
 
-Para configurar la base de datos, generar QRs y desplegar el evento, consultá [`RUNBOOK.md`](./RUNBOOK.md).
+Para configurar la base de datos, generar QRs y desplegar el evento, consultá [`RUNBOOK.md`](./RUNBOOK.md). Para desplegar varios clones aislados en un mismo VPS, consultá [`deploy-guide.md`](./deploy-guide.md).
+
+En producción, configurar las tres variables de identidad antes del build y del inicio; `EVENT_HOSTNAME` debe ser el dominio real. Cada clon requiere valores únicos y su propia contraseña de admin. La moderación automática se calcula en el servidor con NSFWJS; el score del navegador no autoriza fotos.
 
 ## Scripts
 

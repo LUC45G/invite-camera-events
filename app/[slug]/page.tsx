@@ -98,7 +98,7 @@ export default async function Page({ params, searchParams }: Props) {
       </SplitSection>
 
       {/* 3. Cronograma — línea de tiempo vertical */}
-      <section className="relative flex min-h-dvh snap-start flex-col items-center justify-center overflow-hidden px-6">
+      <section className="relative flex min-h-dvh snap-start flex-col items-center justify-center overflow-hidden px-6 pt-32 pb-24 md:py-0">
         <SectionDecor items={event.decor.schedule} className="md:translate-x-[50px]" />
         <div className="relative z-20 w-full">
           <Reveal>
@@ -107,7 +107,7 @@ export default async function Page({ params, searchParams }: Props) {
                 Cronograma
               </h2>
             </Stagger>
-            <div className="mt-2 w-full">
+            <div className="mt-6 w-full md:mt-2">
               <Timeline items={event.schedule} />
             </div>
           </Reveal>

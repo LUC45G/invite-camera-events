@@ -11,7 +11,8 @@ function hostName(request: NextRequest) {
 
 export function proxy(request: NextRequest) {
   const host = hostName(request);
-  if (host !== installation.EVENT_HOSTNAME) {
+  const localDevelopment = process.env.NODE_ENV === "development" && ["localhost", "127.0.0.1", "[::1]"].includes(host);
+  if (host !== installation.EVENT_HOSTNAME && !localDevelopment) {
     return new Response("Not found", { status: 404 });
   }
 

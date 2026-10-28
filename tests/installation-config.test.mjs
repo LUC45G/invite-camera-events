@@ -29,4 +29,17 @@ test("proxy rejects foreign hosts on pages and APIs and preserves QR query param
   assert.equal(new URL(rewritten.headers.get("x-middleware-rewrite")).search, "?token=family");
   const { default: testing } = await import("next/experimental/testing/server.js");
   assert.equal(testing.unstable_doesMiddlewareMatch({ config, nextConfig: {}, url: "/api/admin/setup" }), true);
+  const previousMode = process.env.NODE_ENV;
+  try {
+    for (const host of ["localhost", "127.0.0.1", "[::1]"]) {
+      process.env.NODE_ENV = "development";
+      const local = new NextRequest(`http://${host}:3000/?token=family`, { headers: { host: `${host}:3000` } });
+      assert.equal(new URL(proxy(local).headers.get("x-middleware-rewrite")).pathname, "/event-b");
+      process.env.NODE_ENV = "production";
+      assert.equal(proxy(local).status, 404);
+    }
+  } finally {
+    if (previousMode === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousMode;
+  }
 });

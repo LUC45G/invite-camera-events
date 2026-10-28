@@ -74,8 +74,9 @@ export const weddingEvent: WeddingEvent = {
   story: {
     heading: "Te invitamos a ser parte",
     paragraphs: [
-      "La verdad es que es maravilloso la forma en que no sé qué carajo poner acá.",
-      "Hoy queremos celebrar con quienes más queremos. Nos encantaría tenerte con nosotros allá.",
+      "Por todos los momentos felices que hemos vivido, y por todo lo que está por llegar,",
+      "¡NOS CASAMOS!",
+      "Y nos encantaría compartir este día con las personas más especiales para nosotros."
     ],
     image: "https://images.unsplash.com/photo-1583939003579-730e3918a45a",
   },

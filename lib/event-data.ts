@@ -49,6 +49,7 @@ export type WeddingEvent = {
   heroImage: string;
   story: { heading: string; paragraphs: string[]; image: string };
   schedule: ScheduleItem[];
+  faq: { question: string; answer: string }[];
   decor: {
     history: Decoration[];
     schedule: Decoration[];
@@ -61,7 +62,7 @@ export const weddingEvent: WeddingEvent = {
   slug: env.EVENT_SLUG,
   coupleNames: "Daniela & Miguel",
   date: "Domingo 07 de febrero de 2027",
-  time: "16:00",
+  time: "19:00",
   // Fecha random placeholder: ajustar con la fecha real de la boda.
   weddingTimestamp: "2027-02-07T16:00:00-03:00",
   venue: "Predio Quimicos Y Petroquímicos",
@@ -92,6 +93,13 @@ export const weddingEvent: WeddingEvent = {
     { time: "03:00", title: "Cotillón y Toro Mecánico", description: "A domar o morir.", icon: "/icons/cotillon.png" },
     { time: "04:00", title: "Medianoche", description: "El bajón salvador.", icon: "/icons/medianoche.webp" },
   ],
+  get faq() {
+    return [
+      { question: "Código de vestimenta", answer: "Elegante casual." },
+      { question: "Horario", answer: `La ceremonia empieza a las 19:00hs. La fiesta es hasta las 5:00hs` },
+      { question: "Estacionamiento", answer: "El salón tiene estacionamiento propio, se ingresa por la entrada derecha y el salón está al doblar en la primera intersección hacia la izquierda." }
+    ];
+  },
   decor: {
     // "Te invitamos a ser parte"
     history: [

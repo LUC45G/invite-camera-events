@@ -150,14 +150,9 @@ export default async function Page({ params, searchParams }: Props) {
             <h2 className="font-serif text-4xl text-ink sm:text-5xl" style={{ textWrap: "balance" }}>Preguntas</h2>
           </Reveal>
           <div className="mt-6 flex flex-col gap-0 text-left">
-            {[
-              { q: "Código de vestimenta", a: "Elegante. Evitar color blanco o beige." },
-              { q: "Horario", a: `La ceremonia empieza a las ${event.time}. Llegar 10 minutos antes.` },
-              { q: "Estacionamiento", a: "El salón tiene estacionamiento propio." },
-              { q: "Niños", a: "La fiesta es solo para adultos." },
-            ].map((faq, i) => (
-              <Stagger key={faq.q} delay={150 + i * 150}>
-                <FaqItem question={faq.q} answer={faq.a} />
+            {event.faq.map((faq, i) => (
+              <Stagger key={faq.question} delay={150 + i * 150}>
+                <FaqItem question={faq.question} answer={faq.answer} />
               </Stagger>
             ))}
           </div>

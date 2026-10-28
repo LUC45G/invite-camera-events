@@ -52,10 +52,9 @@ export function ScrollDots() {
         <div className="absolute inset-y-3.5 left-1/2 w-px -translate-x-1/2 bg-ink/10" />
         {/* progress fill */}
         <div
-          className="absolute left-1/2 w-px -translate-x-1/2 bg-bronze transition-all duration-500 ease-out"
+          className="absolute inset-y-3.5 left-1/2 w-px origin-top -translate-x-1/2 bg-bronze transition-transform duration-500 ease-out motion-reduce:transition-none"
           style={{
-            top: "14px",
-            height: `calc((100% - 28px) * ${active / (LABELS.length - 1)})`,
+            transform: `scaleY(${active / (LABELS.length - 1)})`,
           }}
         />
         {LABELS.map((label, i) => (
@@ -65,11 +64,11 @@ export function ScrollDots() {
             aria-label={label}
             aria-current={active === i ? "true" : undefined}
             onClick={() => goTo(i)}
-            className="group relative z-10 flex h-7 items-center justify-center py-0"
+            className="group relative z-10 flex h-7 w-4 items-center justify-center py-0"
           >
             {/* label */}
             <span
-              className={`pointer-events-none absolute right-full mr-3 whitespace-nowrap font-sans text-xs tracking-[0.2em] uppercase transition-all duration-300 ${
+              className={`pointer-events-none absolute right-full mr-3 whitespace-nowrap font-sans text-xs tracking-[0.2em] uppercase transition-[translate,opacity,color] duration-300 group-focus-visible:translate-x-0 group-focus-visible:opacity-100 motion-reduce:translate-x-0 motion-reduce:transition-opacity motion-reduce:duration-150 ${
                 active === i
                   ? "translate-x-0 text-bronze opacity-100"
                   : "translate-x-2 text-ink/55 opacity-0 group-hover:translate-x-0 group-hover:opacity-100"
@@ -79,10 +78,10 @@ export function ScrollDots() {
             </span>
             {/* dot */}
             <span
-              className={`block rounded-full border transition-all duration-300 group-hover:scale-125 ${
+              className={`block h-3.5 w-3.5 rounded-full border transition-[scale,background-color,border-color] duration-300 motion-safe:group-hover:scale-125 motion-reduce:transition-colors motion-reduce:duration-150 ${
                 active === i
-                  ? "h-4 w-4 border-bronze bg-bronze"
-                  : "h-3.5 w-3.5 border-ink/25 bg-cream group-hover:border-ink/50"
+                  ? "scale-[1.142857] border-bronze bg-bronze"
+                  : "border-ink/25 bg-cream group-hover:border-ink/50"
               }`}
             />
           </button>

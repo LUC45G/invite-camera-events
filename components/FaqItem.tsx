@@ -38,7 +38,7 @@ export function FaqItem({ question, answer }: Props) {
         aria-expanded={open}
       >
         {question}
-        <span className={`ml-4 text-lg text-ink/40 transition-transform duration-200 ${open ? "rotate-45" : ""}`}>
+        <span className={`ml-4 text-lg text-ink/40 transition-transform duration-200 motion-reduce:transition-none ${open ? "rotate-45" : ""}`}>
           +
         </span>
       </button>

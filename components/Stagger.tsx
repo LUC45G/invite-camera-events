@@ -15,11 +15,6 @@ export function Stagger({ delay = 0, children }: Props) {
     const el = ref.current;
     if (!el) return;
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      setVisible(true);
-      return;
-    }
-
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -37,7 +32,7 @@ export function Stagger({ delay = 0, children }: Props) {
   return (
     <div
       ref={ref}
-      className={`transition-opacity duration-1000 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
+      className={`stagger transition-opacity duration-1000 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
       style={{ transitionDelay: `${delay}ms` }}
     >
       {children}

@@ -31,18 +31,11 @@ export function addScrollListener(
   return () => host.removeEventListener("scroll", onScroll);
 }
 
-export function smoothScrollTo(host: ScrollHost, top: number, duration = 900) {
-  const start = getScrollTop(host);
-  const delta = top - start;
-  const startTime = performance.now();
-
-  const easeInOutCubic = (t: number) =>
-    t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-  function step(now: number) {
-    const progress = Math.min((now - startTime) / duration, 1);
-    host.scrollTo({ top: start + delta * easeInOutCubic(progress) });
-    if (progress < 1) requestAnimationFrame(step);
-  }
-  requestAnimationFrame(step);
+export function smoothScrollTo(host: ScrollHost, top: number) {
+  host.scrollTo({
+    top,
+    behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+      ? "instant"
+      : "smooth",
+  });
 }

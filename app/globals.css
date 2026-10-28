@@ -110,15 +110,12 @@ button:not(:disabled) {
   transform: none;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .reveal {
-    opacity: 1;
-    transform: none;
-    transition: none;
-  }
-  .faq-content {
-    grid-template-rows: 1fr !important;
-  }
+/* Entrance effects must never hide usable controls. */
+.reveal:has(:is(a, button, input, select, textarea)),
+.stagger:has(:is(a, button, input, select, textarea)) {
+  opacity: 1;
+  transform: none;
+  transition: none !important;
 }
 
 /* FAQ accordion */
@@ -223,3 +220,15 @@ button:not(:disabled) {
 .codex-toggle[aria-checked="true"] { border-color: var(--codex-green); background: color-mix(in srgb, var(--codex-green) 22%, transparent); }
 .codex-toggle[aria-checked="true"]::after { transform: translateX(1.1rem); background: var(--codex-green); }
 .codex-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+  .snap-container { scroll-behavior: auto; }
+  .reveal,
+  .stagger {
+    opacity: 1;
+    transform: none;
+    transition: none !important;
+  }
+  .faq-content { transition: none; }
+  .codex-toggle::after { transition: background 150ms ease; }
+}
